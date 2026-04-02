@@ -17,6 +17,7 @@ const flashOverlay = document.getElementById("battle-flash");
 const btnCameraSwitch = document.getElementById("btn-camera-switch");
 const opponentVideo = document.getElementById("opponent-video");
 const opponentPlaceholder = document.getElementById("opponent-placeholder");
+const localVideoElement = document.querySelector(".input_video");
 
 const BATTLE_DURATION = 20; // 20 detik
 
@@ -29,6 +30,12 @@ let timerInterval = null;
 let pusher = null;
 let channel = null;
 let pusherSocketId = null;
+const localPeerId = `peer-${Math.random().toString(36).slice(2, 12)}`;
+let peerConnection = null;
+let localStream = null;
+let remotePeerId = null;
+let isOfferer = false;
+const userId = battleArea?.dataset.userId || null;
 const scoreUrl = battleArea?.dataset.scoreUrl || "/jarimatika/battle/score";
 const csrfToken = document.querySelector('meta[name="csrf-token"]')?.content;
 
@@ -62,6 +69,159 @@ function updateProgress() {
 function setOpponentStatus(message, accent = "#ef4444") {
     statusText.textContent = message;
     statusText.style.color = accent;
+}
+
+async function postSignal(type, payload) {
+    if (!csrfToken) {
+        logBattle("Peer signal gagal: CSRF token hilang.");
+        return;
+    }
+
+    try {
+        await fetch("/jarimatika/battle/signal", {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+                "X-CSRF-TOKEN": csrfToken,
+            },
+            body: JSON.stringify({
+                gameId,
+                type,
+                payload,
+                socket_id: pusherSocketId,
+            }),
+        });
+    } catch (err) {
+        logBattle(`Peer signal error: ${err.message}`);
+    }
+}
+
+function initializePeerConnection() {
+    if (peerConnection) return peerConnection;
+
+    peerConnection = new RTCPeerConnection({
+        iceServers: [{ urls: "stun:stun.l.google.com:19302" }],
+    });
+
+    peerConnection.onicecandidate = (event) => {
+        if (event.candidate) {
+            postSignal("ice", {
+                peerId: localPeerId,
+                candidate: event.candidate,
+            });
+        }
+    };
+
+    peerConnection.ontrack = (event) => {
+        if (opponentVideo) {
+            opponentVideo.srcObject = event.streams[0];
+            opponentVideo.play().catch(() => {});
+            updateOpponentCameraUI(true);
+            setOpponentStatus("Kamera lawan aktif", "#10b981");
+        }
+    };
+
+    return peerConnection;
+}
+
+async function createAndSendOffer() {
+    try {
+        if (!localStream) {
+            localStream =
+                localVideoElement && localVideoElement.srcObject
+                    ? localVideoElement.srcObject
+                    : await navigator.mediaDevices.getUserMedia({
+                          video: true,
+                          audio: false,
+                      });
+        }
+
+        const pc = initializePeerConnection();
+
+        if (localStream) {
+            localStream.getTracks().forEach((track) => {
+                if (!pc.getSenders().find((s) => s.track === track)) {
+                    pc.addTrack(track, localStream);
+                }
+            });
+        }
+
+        const offer = await pc.createOffer();
+        await pc.setLocalDescription(offer);
+
+        await postSignal("offer", {
+            peerId: localPeerId,
+            sdp: offer,
+        });
+
+        isOfferer = true;
+        setOpponentStatus("Menunggu jawaban lawan...", "#fbbf24");
+        logBattle("Offer WebRTC terkirim.");
+    } catch (error) {
+        logBattle(`Gagal buat offer WebRTC: ${error.message}`);
+        setOpponentStatus("Gagal memulai koneksi lawan", "#f87171");
+    }
+}
+
+async function handleSignal(type, data) {
+    if (!data || !data.type || !data.payload) return;
+
+    if (data.payload.peerId === localPeerId) return; // Ignore self
+
+    remotePeerId = data.payload.peerId || remotePeerId;
+    const pc = initializePeerConnection();
+
+    try {
+        if (type === "offer") {
+            if (localStream == null) {
+                localStream =
+                    (localVideoElement && localVideoElement.srcObject) ||
+                    (await navigator.mediaDevices.getUserMedia({
+                        video: true,
+                        audio: false,
+                    }));
+            }
+
+            if (localStream) {
+                localStream.getTracks().forEach((track) => {
+                    if (!pc.getSenders().find((s) => s.track === track)) {
+                        pc.addTrack(track, localStream);
+                    }
+                });
+            }
+
+            await pc.setRemoteDescription(
+                new RTCSessionDescription(data.payload.sdp),
+            );
+            const answer = await pc.createAnswer();
+            await pc.setLocalDescription(answer);
+
+            await postSignal("answer", {
+                peerId: localPeerId,
+                sdp: answer,
+            });
+
+            setOpponentStatus("Terkoneksi ke lawan", "#10b981");
+            logBattle("Answer WebRTC dikirim.");
+        }
+
+        if (type === "answer" && data.payload.sdp) {
+            await pc.setRemoteDescription(
+                new RTCSessionDescription(data.payload.sdp),
+            );
+            setOpponentStatus("Koneksi lawan terinstal", "#10b981");
+            logBattle("Answer diterima dan set remote description.");
+        }
+
+        if (type === "ice" && data.payload.candidate) {
+            await pc.addIceCandidate(
+                new RTCIceCandidate(data.payload.candidate),
+            );
+            logBattle("ICE candidate ditambahkan.");
+        }
+    } catch (err) {
+        logBattle(`Signal handling error: ${err.message}`);
+    }
 }
 
 function flashResult(success) {
@@ -141,6 +301,11 @@ function bindPusher() {
         setOpponentStatus(`Lawan berhasil menjawab +${points}`);
         updateProgress();
         logBattle(`Event OpponentScored diterima: +${points} poin.`);
+    });
+
+    channel.bind("PeerSignal", (data) => {
+        if (!data || !data.type || !data.payload) return;
+        handleSignal(data.type, data);
     });
 
     channel.bind("pusher:subscription_error", (err) => {
@@ -250,7 +415,7 @@ function updateOpponentCameraUI(isActive) {
 
 let isCameraEnabled = false;
 
-btnCameraSwitch?.addEventListener("click", () => {
+btnCameraSwitch?.addEventListener("click", async () => {
     if (!canUseCamera()) {
         alert(
             "Kamera tidak tersedia: gunakan browser modern, akses melalui https://localhost, atau pakai ngrok / server HTTPS.",
@@ -260,22 +425,38 @@ btnCameraSwitch?.addEventListener("click", () => {
 
     if (!isCameraEnabled) {
         if (window.startCameraSystem) window.startCameraSystem();
-        if (videoElement && opponentVideo) {
-            opponentVideo.srcObject = videoElement.srcObject;
-            opponentVideo.play().catch(() => {});
+
+        // Pastikan stream sudah tersedia dari video input MediaPipe
+        if (!localStream) {
+            localStream =
+                window.videoElement && window.videoElement.srcObject
+                    ? window.videoElement.srcObject
+                    : await navigator.mediaDevices.getUserMedia({
+                          video: true,
+                          audio: false,
+                      });
         }
+
+        await createAndSendOffer();
+
         isCameraEnabled = true;
         btnCameraSwitch.textContent = "Matikan Kamera";
-        updateOpponentCameraUI(true);
+        setOpponentStatus("Menunggu lawan terhubung...", "#38bdf8");
     } else {
         if (window.stopCameraSystem) window.stopCameraSystem();
+        if (peerConnection) {
+            peerConnection.close();
+            peerConnection = null;
+        }
         if (opponentVideo) {
             opponentVideo.pause();
             opponentVideo.srcObject = null;
         }
+        localStream = null;
         isCameraEnabled = false;
         btnCameraSwitch.textContent = "Nyalakan Kamera";
         updateOpponentCameraUI(false);
+        setOpponentStatus("Kamera dimatikan", "#94a3b8");
     }
 });
 

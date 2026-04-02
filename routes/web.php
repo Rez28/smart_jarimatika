@@ -57,6 +57,10 @@ Route::post('/jarimatika/battle/score', [App\Http\Controllers\BattleController::
     ->middleware(['auth', 'verified'])
     ->name('jarimatika.battle.score');
 
+Route::post('/jarimatika/battle/signal', [App\Http\Controllers\BattleController::class, 'signal'])
+    ->middleware(['auth', 'verified'])
+    ->name('jarimatika.battle.signal');
+
 Route::get('/jarimatika/belajar', function () {
     return view('jarimatika.belajar');
 })->middleware(['auth', 'verified'])->name('jarimatika.belajar');

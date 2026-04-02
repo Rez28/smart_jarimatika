@@ -66,7 +66,7 @@
         }
     </style>
 
-    <div id="battle-screen" data-game-id="{{ $gameId }}"
+    <div id="battle-screen" data-game-id="{{ $gameId }}" data-user-id="{{ auth()->id() }}"
         data-pusher-key="{{ config('broadcasting.connections.pusher.key', '') }}"
         data-pusher-cluster="{{ config('broadcasting.connections.pusher.options.cluster', 'mt1') }}"
         data-score-url="{{ route('jarimatika.battle.score') }}" class="jarimatika-container py-6 px-4 sm:px-6">
