@@ -66,9 +66,10 @@
         }
     </style>
 
-    <div id="battle-screen" data-game-id="{{ $gameId }}" data-pusher-key="{{ env('PUSHER_APP_KEY', '') }}"
-        data-pusher-cluster="{{ env('PUSHER_APP_CLUSTER', 'mt1') }}" data-score-url="{{ route('jarimatika.battle.score') }}"
-        class="jarimatika-container py-6 px-4 sm:px-6">
+    <div id="battle-screen" data-game-id="{{ $gameId }}"
+        data-pusher-key="{{ config('broadcasting.connections.pusher.key', '') }}"
+        data-pusher-cluster="{{ config('broadcasting.connections.pusher.options.cluster', 'mt1') }}"
+        data-score-url="{{ route('jarimatika.battle.score') }}" class="jarimatika-container py-6 px-4 sm:px-6">
 
         <div class="max-w-[1400px] mx-auto">
 
@@ -85,6 +86,9 @@
                     <span class="w-3 h-3 rounded-full bg-emerald-500 animate-pulse"></span>
                     <span class="font-bold text-slate-600 text-sm">Real-Time Server</span>
                 </div>
+                <button id="btn-camera-switch" type="button"
+                    class="ml-3 px-4 py-2 bg-[#38BDF8] text-white rounded-xl font-bold hover:bg-[#0ea5e9] transition-all">Nyalakan
+                    Kamera</button>
             </div>
 
             <main class="grid grid-cols-1 lg:grid-cols-[1fr_auto_1fr] gap-6 items-start">
@@ -130,7 +134,7 @@
 
                     <div class="game-card p-4 border-b-[6px] border-slate-800 text-center bg-slate-800">
                         <p class="text-slate-400 font-bold uppercase tracking-widest text-xs mb-1">Sisa Waktu</p>
-                        <p id="battle-timer" class="text-4xl font-black text-[#FFE52A] drop-shadow-md animate-pulse">60s</p>
+                        <p id="battle-timer" class="text-4xl font-black text-[#FFE52A] drop-shadow-md animate-pulse">20s</p>
                     </div>
 
                     <div class="flex flex-col gap-3 mt-2">
@@ -158,10 +162,13 @@
                                 style="background-image: radial-gradient(#F79A19 2px, transparent 2px); background-size: 15px 15px;">
                             </div>
 
-                            <div class="text-[5rem] relative z-10 transform transition-transform hover:scale-110">🤖</div>
+                            <video id="opponent-video" muted autoplay playsinline
+                                class="object-cover w-full h-full hidden"></video>
+                            <div id="opponent-placeholder"
+                                class="text-[5rem] relative z-10 transform transition-transform hover:scale-110">🤖</div>
                             <p id="opponent-status"
                                 class="mt-4 text-lg font-bold text-slate-500 uppercase tracking-widest bg-white px-4 py-1 rounded-full shadow-sm relative z-10">
-                                Connected</p>
+                                Menunggu lawan...</p>
                         </div>
 
                         <div class="mt-4 bg-[#FFEDD5] border-2 border-[#FED7AA] rounded-2xl p-4 text-center">

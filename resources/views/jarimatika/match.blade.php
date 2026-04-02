@@ -59,6 +59,24 @@
                 <h1 class="text-4xl md:text-5xl font-black text-slate-800 drop-shadow-sm">Mencari Penantang...</h1>
             </div>
 
+            <div class="flex gap-3 mb-6 justify-center">
+                <button id="btn-quick-match" class="px-4 py-3 rounded-xl bg-blue-500 text-white font-bold">Quick
+                    Match</button>
+                <button id="btn-create-room" class="px-4 py-3 rounded-xl bg-green-500 text-white font-bold">Buat Room</button>
+                <button id="btn-show-join" class="px-4 py-3 rounded-xl bg-indigo-500 text-white font-bold">Join
+                    Room</button>
+            </div>
+
+            <div id="room-controls" class="game-card p-6 border-b-[8px] border-[#34D399] mb-6 hidden">
+                <div class="flex flex-col md:flex-row md:items-center gap-3">
+                    <input id="room-code-input" class="w-full md:w-auto flex-1 border border-slate-200 rounded-xl px-3 py-2"
+                        type="text" placeholder="Masukkan kode room" maxlength="8" />
+                    <button id="btn-join-room" class="py-2 px-4 bg-indigo-600 text-white rounded-xl font-bold">Gabung
+                        Room</button>
+                </div>
+                <p id="room-created" class="mt-3 text-slate-600">Gunakan kode untuk mengundang teman.</p>
+            </div>
+
             <div
                 class="game-card border-b-[12px] border-[#38BDF8] p-8 md:p-12 relative overflow-hidden flex flex-col md:flex-row items-center justify-between gap-8 mb-8 z-10">
 

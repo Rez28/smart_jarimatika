@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Room;
 use App\Models\User;
 use App\Models\MatchmakingWaiting;
 use App\Models\MatchmakingGame;
@@ -17,24 +18,22 @@ class MatchController extends Controller
         ]);
     }
 
+    // Quick matchmaking
     public function join(Request $request)
     {
         $user = $request->user();
 
-        // Check if user already in waiting
         $existing = MatchmakingWaiting::where('user_id', $user->id)->first();
         if ($existing) {
             return response()->json(['status' => 'waiting']);
         }
 
-        // Find opponent in waiting
         $waiting = MatchmakingWaiting::where('user_id', '!=', $user->id)->first();
 
         if ($waiting) {
             $opponent = User::find($waiting->user_id);
             $gameId = 'battle-' . Str::lower(Str::random(10));
 
-            // Create game
             MatchmakingGame::create([
                 'game_id' => $gameId,
                 'player1_id' => $waiting->user_id,
@@ -42,7 +41,6 @@ class MatchController extends Controller
                 'created_at' => now(),
             ]);
 
-            // Remove from waiting
             $waiting->delete();
 
             return response()->json([
@@ -52,7 +50,6 @@ class MatchController extends Controller
             ]);
         }
 
-        // Add to waiting
         MatchmakingWaiting::create([
             'user_id' => $user->id,
             'user_name' => $user->name,
@@ -66,7 +63,6 @@ class MatchController extends Controller
     {
         $user = $request->user();
 
-        // Check if user is in a game
         $game = MatchmakingGame::where('player1_id', $user->id)
             ->orWhere('player2_id', $user->id)
             ->first();
@@ -74,6 +70,7 @@ class MatchController extends Controller
         if ($game) {
             $opponentId = $game->player1_id === $user->id ? $game->player2_id : $game->player1_id;
             $opponent = User::find($opponentId);
+
             return response()->json([
                 'status' => 'matched',
                 'gameId' => $game->game_id,
@@ -81,12 +78,91 @@ class MatchController extends Controller
             ]);
         }
 
-        // Check if still waiting
         $waiting = MatchmakingWaiting::where('user_id', $user->id)->first();
         if ($waiting) {
             return response()->json(['status' => 'waiting']);
         }
 
         return response()->json(['status' => 'idle']);
+    }
+
+    // Room-based matchmaking
+    public function createRoom(Request $request)
+    {
+        $user = $request->user();
+
+        $roomCode = strtoupper(Str::random(6));
+        while (Room::where('room_code', $roomCode)->exists()) {
+            $roomCode = strtoupper(Str::random(6));
+        }
+
+        $room = Room::create([
+            'room_code' => $roomCode,
+            'host_id' => $user->id,
+            'status' => 'waiting',
+        ]);
+
+        return response()->json(['status' => 'created', 'room_code' => $room->room_code]);
+    }
+
+    public function joinRoom(Request $request)
+    {
+        $user = $request->user();
+        $roomCode = strtoupper($request->input('room_code'));
+
+        $room = Room::where('room_code', $roomCode)->first();
+        if (! $room) {
+            return response()->json(['status' => 'error', 'message' => 'Room tidak ditemukan'], 404);
+        }
+
+        if ($room->status !== 'waiting') {
+            return response()->json(['status' => 'error', 'message' => 'Room sudah tidak tersedia'], 400);
+        }
+
+        if ($room->host_id === $user->id) {
+            return response()->json(['status' => 'error', 'message' => 'Tidak bisa join room sendiri'], 400);
+        }
+
+        $room->guest_id = $user->id;
+        $room->status = 'started';
+        $room->game_id = 'battle-' . Str::lower(Str::random(10));
+        $room->save();
+
+        MatchmakingGame::create([
+            'game_id' => $room->game_id,
+            'player1_id' => $room->host_id,
+            'player2_id' => $room->guest_id,
+            'created_at' => now(),
+        ]);
+
+        return response()->json(['status' => 'matched', 'gameId' => $room->game_id, 'opponent' => $room->host?->name ?? 'Opponent']);
+    }
+
+    public function roomStatus(Request $request)
+    {
+        $user = $request->user();
+        $roomCode = strtoupper($request->query('room_code'));
+
+        $room = Room::where('room_code', $roomCode)->first();
+        if (! $room) {
+            return response()->json(['status' => 'error', 'message' => 'Room tidak ditemukan'], 404);
+        }
+
+        if ($room->status === 'waiting') {
+            return response()->json(['status' => 'waiting']);
+        }
+
+        if ($room->status === 'started') {
+            $opponentId = $room->host_id === $user->id ? $room->guest_id : $room->host_id;
+            $opponent = User::find($opponentId);
+
+            return response()->json([
+                'status' => 'matched',
+                'gameId' => $room->game_id,
+                'opponent' => $opponent?->name ?? 'Opponent',
+            ]);
+        }
+
+        return response()->json(['status' => 'closed']);
     }
 }

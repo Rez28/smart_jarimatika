@@ -36,6 +36,18 @@ Route::get('/jarimatika/match/status', [App\Http\Controllers\MatchController::cl
     ->middleware(['auth', 'verified'])
     ->name('jarimatika.match.status');
 
+Route::post('/jarimatika/room/create', [App\Http\Controllers\MatchController::class, 'createRoom'])
+    ->middleware(['auth', 'verified'])
+    ->name('jarimatika.room.create');
+
+Route::post('/jarimatika/room/join', [App\Http\Controllers\MatchController::class, 'joinRoom'])
+    ->middleware(['auth', 'verified'])
+    ->name('jarimatika.room.join');
+
+Route::get('/jarimatika/room/status', [App\Http\Controllers\MatchController::class, 'roomStatus'])
+    ->middleware(['auth', 'verified'])
+    ->name('jarimatika.room.status');
+
 Route::get('/jarimatika/battle', function () {
     $gameId = request()->query('gameId', 'demo');
     return view('jarimatika.battle', compact('gameId'));
@@ -55,4 +67,4 @@ Route::middleware('auth')->group(function () {
     Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
 });
 
-require __DIR__.'/auth.php';
+require __DIR__ . '/auth.php';
