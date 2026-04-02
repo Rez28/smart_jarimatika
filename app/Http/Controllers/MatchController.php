@@ -3,8 +3,9 @@
 namespace App\Http\Controllers;
 
 use App\Models\User;
+use App\Models\MatchmakingWaiting;
+use App\Models\MatchmakingGame;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Str;
 
 class MatchController extends Controller
@@ -19,31 +20,30 @@ class MatchController extends Controller
     public function join(Request $request)
     {
         $user = $request->user();
-        $waiting = Cache::get('matchmaking.waiting');
 
-        if ($waiting && isset($waiting['user_id']) && $waiting['user_id'] !== $user->id) {
-            $opponent = User::find($waiting['user_id']);
+        // Check if user already in waiting
+        $existing = MatchmakingWaiting::where('user_id', $user->id)->first();
+        if ($existing) {
+            return response()->json(['status' => 'waiting']);
+        }
+
+        // Find opponent in waiting
+        $waiting = MatchmakingWaiting::where('user_id', '!=', $user->id)->first();
+
+        if ($waiting) {
+            $opponent = User::find($waiting->user_id);
             $gameId = 'battle-' . Str::lower(Str::random(10));
 
-            Cache::put("matchmaking.game.{$gameId}", [
-                'gameId' => $gameId,
-                'players' => [$waiting['user_id'], $user->id],
-                'created_at' => now()->toDateTimeString(),
-            ], 3600);
+            // Create game
+            MatchmakingGame::create([
+                'game_id' => $gameId,
+                'player1_id' => $waiting->user_id,
+                'player2_id' => $user->id,
+                'created_at' => now(),
+            ]);
 
-            Cache::put("matchmaking.player.{$waiting['user_id']}", [
-                'gameId' => $gameId,
-                'opponent' => $user->name,
-                'matched_at' => now()->toDateTimeString(),
-            ], 600);
-
-            Cache::put("matchmaking.player.{$user->id}", [
-                'gameId' => $gameId,
-                'opponent' => $opponent?->name ?? 'Opponent',
-                'matched_at' => now()->toDateTimeString(),
-            ], 600);
-
-            Cache::forget('matchmaking.waiting');
+            // Remove from waiting
+            $waiting->delete();
 
             return response()->json([
                 'status' => 'matched',
@@ -52,16 +52,12 @@ class MatchController extends Controller
             ]);
         }
 
-        Cache::put('matchmaking.waiting', [
+        // Add to waiting
+        MatchmakingWaiting::create([
             'user_id' => $user->id,
-            'name' => $user->name,
-            'created_at' => now()->toDateTimeString(),
-        ], 30);
-
-        Cache::put("matchmaking.player.{$user->id}", [
-            'waiting' => true,
-            'waiting_at' => now()->toDateTimeString(),
-        ], 30);
+            'user_name' => $user->name,
+            'created_at' => now(),
+        ]);
 
         return response()->json(['status' => 'waiting']);
     }
@@ -69,20 +65,28 @@ class MatchController extends Controller
     public function status(Request $request)
     {
         $user = $request->user();
-        $player = Cache::get("matchmaking.player.{$user->id}");
 
-        if (! $player) {
-            return response()->json(['status' => 'waiting']);
-        }
+        // Check if user is in a game
+        $game = MatchmakingGame::where('player1_id', $user->id)
+            ->orWhere('player2_id', $user->id)
+            ->first();
 
-        if (! empty($player['gameId'])) {
+        if ($game) {
+            $opponentId = $game->player1_id === $user->id ? $game->player2_id : $game->player1_id;
+            $opponent = User::find($opponentId);
             return response()->json([
                 'status' => 'matched',
-                'gameId' => $player['gameId'],
-                'opponent' => $player['opponent'] ?? 'Opponent',
+                'gameId' => $game->game_id,
+                'opponent' => $opponent?->name ?? 'Opponent',
             ]);
         }
 
-        return response()->json(['status' => 'waiting']);
+        // Check if still waiting
+        $waiting = MatchmakingWaiting::where('user_id', $user->id)->first();
+        if ($waiting) {
+            return response()->json(['status' => 'waiting']);
+        }
+
+        return response()->json(['status' => 'idle']);
     }
 }
