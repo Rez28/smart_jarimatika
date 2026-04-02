@@ -17,6 +17,9 @@ return new class extends Migration
             $table->string('email')->unique();
             $table->timestamp('email_verified_at')->nullable();
             $table->string('password');
+            $table->integer('total_xp')->default(0); // XP akumulatif untuk gamifikasi
+            $table->integer('koin')->default(0); // Koin pengguna
+            $table->integer('level')->default(1); // Level awal pengguna
             $table->rememberToken();
             $table->timestamps();
         });
