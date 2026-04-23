@@ -20,6 +20,7 @@ class DatabaseSeeder extends Seeder
             'name' => 'Test User',
             'email' => 'test@example.com',
         ]);
-        UserSeeder::class; // <-- TAMBAHKAN INI
+        // Call the additional seeder to create a known test account (ID=1)
+        $this->call(\Database\Seeders\UserSeeder::class);
     }
 }

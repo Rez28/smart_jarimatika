@@ -54,17 +54,19 @@
             <div class="text-center mb-10">
                 <div
                     class="inline-block bg-[#F79A19] text-white px-6 py-2 rounded-full text-xl font-bold uppercase tracking-widest border-b-4 border-[#c8790f] mb-4 shadow-sm">
-                    ⚔️ Mode Battle 1 vs 1
+                    🏠 Mode Battle Room
                 </div>
-                <h1 class="text-4xl md:text-5xl font-black text-slate-800 drop-shadow-sm">Mencari Penantang...</h1>
+                <h1 class="text-4xl md:text-5xl font-black text-slate-800 drop-shadow-sm">Buat Room Battle</h1>
+                <p class="text-slate-600 mt-2">Room unik akan dibuat otomatis. Bagikan kode room ke teman untuk bergabung!
+                </p>
             </div>
 
             <div class="flex gap-3 mb-6 justify-center">
+                <button id="btn-create-room" class="px-4 py-3 rounded-xl bg-green-500 text-white font-bold">Buat Room
+                    Baru</button>
+                <button id="btn-show-join" class="px-4 py-3 rounded-xl bg-indigo-500 text-white font-bold">Join Room</button>
                 <button id="btn-quick-match" class="px-4 py-3 rounded-xl bg-blue-500 text-white font-bold">Quick
                     Match</button>
-                <button id="btn-create-room" class="px-4 py-3 rounded-xl bg-green-500 text-white font-bold">Buat Room</button>
-                <button id="btn-show-join" class="px-4 py-3 rounded-xl bg-indigo-500 text-white font-bold">Join
-                    Room</button>
             </div>
 
             <div id="room-controls" class="game-card p-6 border-b-[8px] border-[#34D399] mb-6 hidden">
@@ -105,7 +107,7 @@
                     </div>
                     <h2 id="queue-opponent" class="text-3xl font-black text-slate-400">Belum ada</h2>
                     <p id="queue-status" class="text-[#F79A19] font-bold uppercase tracking-widest mt-1 animate-pulse">
-                        Menunggu lawan...</p>
+                        Membuat room...</p>
                 </div>
 
                 <div class="absolute inset-0 opacity-5 pointer-events-none z-0"
@@ -136,18 +138,18 @@
                         <div
                             class="flex justify-between items-center bg-slate-50 p-3 rounded-2xl border-2 border-slate-100">
                             <span class="text-slate-600 font-semibold">Info Antrean</span>
-                            <span id="queue-hint" class="font-bold text-[#F79A19]">Menunggu...</span>
+                            <span id="queue-hint" class="font-bold text-[#F79A19]">Membuat room...</span>
                         </div>
                     </div>
                 </div>
 
                 <div class="game-card p-6 border-b-[8px] border-slate-200 flex flex-col justify-center text-center">
                     <div class="text-4xl mb-4">⏱️</div>
-                    <p class="text-slate-500 font-semibold mb-6">Sistem sedang mencocokkan kamu dengan pemain lain secara
-                        otomatis. Harap tunggu sebentar...</p>
+                    <p class="text-slate-500 font-semibold mb-6">Room battle unik sedang dibuat. Bagikan kode room ke teman
+                        untuk bergabung dan mulai battle!</p>
                     <button id="btn-cancel-search" type="button"
                         class="btn-3d-red w-full py-4 text-xl font-bold text-white rounded-2xl flex justify-center items-center gap-2">
-                        <span>❌</span> Batal Mencari
+                        <span>❌</span> Batal & Kembali
                     </button>
                 </div>
 

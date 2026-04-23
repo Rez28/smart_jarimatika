@@ -48,6 +48,10 @@ Route::get('/jarimatika/room/status', [App\Http\Controllers\MatchController::cla
     ->middleware(['auth', 'verified'])
     ->name('jarimatika.room.status');
 
+Route::get('/jarimatika/room/wait', [App\Http\Controllers\MatchController::class, 'waitRoom'])
+    ->middleware(['auth', 'verified'])
+    ->name('jarimatika.room.wait');
+
 Route::get('/jarimatika/battle', function () {
     $gameId = request()->query('gameId', 'demo');
     return view('jarimatika.battle', compact('gameId'));

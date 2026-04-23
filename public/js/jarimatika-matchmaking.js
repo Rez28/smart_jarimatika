@@ -44,6 +44,7 @@ async function quickMatch() {
     try {
         const response = await fetch(quickJoinUrl, {
             method: "POST",
+            credentials: 'same-origin',
             headers: {
                 "Content-Type": "application/json",
                 "X-CSRF-TOKEN": document.querySelector(
@@ -53,7 +54,17 @@ async function quickMatch() {
             body: JSON.stringify({}),
         });
 
+        if (!response.ok) {
+            console.error('Quick join responded with', response.status);
+            const text = await response.text();
+            console.error('Body:', text);
+            setStatus('Gagal membuat permintaan quick match.', 'text-rose-400');
+            queueHint.textContent = 'Periksa koneksi atau login.';
+            return;
+        }
+
         const data = await response.json();
+        console.log('quickMatch response', data);
 
         if (data.status === "matched") {
             handleMatchFound(data);
@@ -76,6 +87,7 @@ async function createRoom() {
     try {
         const response = await fetch(createRoomUrl, {
             method: "POST",
+            credentials: 'same-origin',
             headers: {
                 "Content-Type": "application/json",
                 "X-CSRF-TOKEN": document.querySelector(
@@ -84,13 +96,23 @@ async function createRoom() {
             },
             body: JSON.stringify({}),
         });
+
+        if (!response.ok) {
+            console.error('Create room failed', response.status);
+            const text = await response.text();
+            console.error('Body:', text);
+            setStatus('Gagal membuat room.', 'text-rose-400');
+            queueHint.textContent = 'Periksa koneksi atau login.';
+            return;
+        }
+
         const data = await response.json();
+        console.log('createRoom response', data);
 
         if (data.status === "created") {
             currentRoomCode = data.room_code;
-            setElementText(queueGameId, data.room_code);
-            roomCreated.textContent = `Kode Room: ${data.room_code}`;
-            startRoomPolling(data.room_code);
+            // redirect host to waiting page
+            location.href = `/jarimatika/room/wait?room_code=${encodeURIComponent(data.room_code)}`;
         } else {
             setStatus("Gagal membuat room.", "text-rose-400");
         }
@@ -113,6 +135,7 @@ async function joinRoom() {
     try {
         const response = await fetch(joinRoomUrl, {
             method: "POST",
+            credentials: 'same-origin',
             headers: {
                 "Content-Type": "application/json",
                 "X-CSRF-TOKEN": document.querySelector(
@@ -121,10 +144,29 @@ async function joinRoom() {
             },
             body: JSON.stringify({ room_code: code }),
         });
+
+        if (!response.ok) {
+            console.error('Join room failed', response.status);
+            const text = await response.text();
+            console.error('Body:', text);
+            try {
+                const err = JSON.parse(text);
+                setStatus(err.message || 'Gagal bergabung room.', 'text-rose-400');
+            } catch (e) {
+                setStatus('Gagal bergabung room.', 'text-rose-400');
+            }
+            queueHint.textContent = "Cek kode room atau buat room baru.";
+            return;
+        }
+
         const data = await response.json();
+        console.log('joinRoom response', data);
 
         if (data.status === "matched") {
             handleMatchFound(data);
+        } else if (data.status === "waiting" || data.status === 'joined') {
+            // guest joined but room not yet started - redirect to waiting page
+            location.href = `/jarimatika/room/wait?room_code=${encodeURIComponent(code)}`;
         } else if (data.status === "error") {
             setStatus(data.message, "text-rose-400");
             queueHint.textContent = "Cek kode room atau buat room baru.";
@@ -145,9 +187,19 @@ function startPolling() {
             }
 
             const response = await fetch(url, {
+                credentials: 'same-origin',
                 headers: { Accept: "application/json" },
             });
+
+            if (!response.ok) {
+                console.error('Status poll failed', response.status);
+                queueConnection.textContent = "Terputus";
+                queueConnection.className = "font-semibold text-rose-400";
+                return;
+            }
+
             const data = await response.json();
+            console.log('poll status', data);
 
             if (data.status === "matched") {
                 handleMatchFound(data);
@@ -190,8 +242,17 @@ function handleMatchFound(data) {
     queueConnection.textContent = "Terhubung";
     queueConnection.className = "font-semibold text-emerald-400";
 
+    // fallback: beberapa endpoint mungkin mengembalikan gameId atau hanya room_code
+    const gid = data.gameId || data.game_id || data.room_code || currentRoomCode;
+    console.log('Redirecting to battle with gid=', gid, 'raw response=', data);
+
     setTimeout(() => {
-        location.href = `${battleUrl}?gameId=${encodeURIComponent(data.gameId)}`;
+        if (gid) {
+            location.href = `${battleUrl}?gameId=${encodeURIComponent(gid)}`;
+        } else {
+            setStatus('Gagal mendapatkan gameId.', 'text-rose-400');
+            queueHint.textContent = 'Silahkan refresh atau coba lagi.';
+        }
     }, 1200);
 }
 

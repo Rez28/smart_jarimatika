@@ -37,6 +37,7 @@ let remotePeerId = null;
 let isOfferer = false;
 const userId = battleArea?.dataset.userId || null;
 const scoreUrl = battleArea?.dataset.scoreUrl || "/jarimatika/battle/score";
+const signalUrl = `${window.location.origin}/jarimatika/battle/signal`;
 const csrfToken = document.querySelector('meta[name="csrf-token"]')?.content;
 
 function logBattle(message) {
@@ -44,6 +45,11 @@ function logBattle(message) {
     line.className = "text-slate-300";
     line.textContent = message;
     battleLog.prepend(line);
+}
+
+function debugLog(msg) {
+    console.log("[BATTLE]", msg);
+    logBattle(msg);
 }
 
 function createTarget() {
@@ -78,7 +84,7 @@ async function postSignal(type, payload) {
     }
 
     try {
-        await fetch("/jarimatika/battle/signal", {
+        const response = await fetch(signalUrl, {
             method: "POST",
             headers: {
                 "Content-Type": "application/json",
@@ -91,8 +97,23 @@ async function postSignal(type, payload) {
                 socket_id: pusherSocketId,
             }),
         });
+
+        if (!response.ok) {
+            const text = await response.text();
+            const err = `Peer signal server error ${response.status}: ${text}`;
+            logBattle(err);
+            throw new Error(err);
+        }
+
+        const json = await response.json().catch(() => null);
+        if (json && json.success === false) {
+            logBattle(
+                `Peer signal status false: ${json.message || "no message"}`,
+            );
+        }
     } catch (err) {
         logBattle(`Peer signal error: ${err.message}`);
+        console.error("Peer signal request failed", err);
     }
 }
 

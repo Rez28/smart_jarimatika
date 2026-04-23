@@ -6,6 +6,7 @@ use App\Models\Room;
 use App\Models\User;
 use App\Models\MatchmakingWaiting;
 use App\Models\MatchmakingGame;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Http\Request;
 use Illuminate\Support\Str;
 
@@ -102,7 +103,20 @@ class MatchController extends Controller
             'status' => 'waiting',
         ]);
 
-        return response()->json(['status' => 'created', 'room_code' => $room->room_code]);
+        Log::info('MatchController@createRoom', [
+            'user_id' => $user->id,
+            'room_code' => $room->room_code,
+            'room_id' => $room->id,
+        ]);
+
+        // If the client expects JSON (AJAX), return JSON as before.
+        if ($request->wantsJson() || $request->ajax() || $request->header('X-Requested-With') === 'XMLHttpRequest') {
+            return response()->json(['status' => 'created', 'room_code' => $room->room_code]);
+        }
+
+        // Otherwise redirect the user to the waiting room page so the host
+        // immediately lands on the waiting view and begins polling.
+        return redirect()->route('jarimatika.room.wait', ['room_code' => $room->room_code]);
     }
 
     public function joinRoom(Request $request)
@@ -110,16 +124,21 @@ class MatchController extends Controller
         $user = $request->user();
         $roomCode = strtoupper($request->input('room_code'));
 
+        Log::info('MatchController@joinRoom.attempt', ['user_id' => $user->id, 'room_code' => $roomCode]);
+
         $room = Room::where('room_code', $roomCode)->first();
         if (! $room) {
+            Log::warning('MatchController@joinRoom.not_found', ['user_id' => $user->id, 'room_code' => $roomCode]);
             return response()->json(['status' => 'error', 'message' => 'Room tidak ditemukan'], 404);
         }
 
         if ($room->status !== 'waiting') {
+            Log::warning('MatchController@joinRoom.not_waiting', ['user_id' => $user->id, 'room_code' => $roomCode, 'status' => $room->status]);
             return response()->json(['status' => 'error', 'message' => 'Room sudah tidak tersedia'], 400);
         }
 
         if ($room->host_id === $user->id) {
+            Log::warning('MatchController@joinRoom.self_join', ['user_id' => $user->id, 'room_code' => $roomCode]);
             return response()->json(['status' => 'error', 'message' => 'Tidak bisa join room sendiri'], 400);
         }
 
@@ -135,6 +154,8 @@ class MatchController extends Controller
             'created_at' => now(),
         ]);
 
+        Log::info('MatchController@joinRoom.matched', ['room_code' => $roomCode, 'game_id' => $room->game_id, 'host_id' => $room->host_id, 'guest_id' => $room->guest_id]);
+
         return response()->json(['status' => 'matched', 'gameId' => $room->game_id, 'opponent' => $room->host?->name ?? 'Opponent']);
     }
 
@@ -143,18 +164,24 @@ class MatchController extends Controller
         $user = $request->user();
         $roomCode = strtoupper($request->query('room_code'));
 
+        Log::info('MatchController@roomStatus.request', ['user_id' => $user->id ?? null, 'room_code' => $roomCode]);
+
         $room = Room::where('room_code', $roomCode)->first();
         if (! $room) {
+            Log::warning('MatchController@roomStatus.not_found', ['room_code' => $roomCode]);
             return response()->json(['status' => 'error', 'message' => 'Room tidak ditemukan'], 404);
         }
 
         if ($room->status === 'waiting') {
+            Log::info('MatchController@roomStatus.waiting', ['room_code' => $roomCode]);
             return response()->json(['status' => 'waiting']);
         }
 
         if ($room->status === 'started') {
             $opponentId = $room->host_id === $user->id ? $room->guest_id : $room->host_id;
             $opponent = User::find($opponentId);
+
+            Log::info('MatchController@roomStatus.started', ['room_code' => $roomCode, 'game_id' => $room->game_id]);
 
             return response()->json([
                 'status' => 'matched',
@@ -164,5 +191,22 @@ class MatchController extends Controller
         }
 
         return response()->json(['status' => 'closed']);
+    }
+
+    /**
+     * Show waiting room page for host or guest.
+     */
+    public function waitRoom(Request $request)
+    {
+        $user = $request->user();
+        $roomCode = strtoupper($request->query('room_code', ''));
+
+        $room = Room::where('room_code', $roomCode)->first();
+
+        return view('jarimatika.room_wait', [
+            'room' => $room,
+            'room_code' => $roomCode,
+            'user' => $user,
+        ]);
     }
 }
