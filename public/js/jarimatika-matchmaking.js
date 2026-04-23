@@ -1,9 +1,17 @@
-const quickJoinUrl = "/jarimatika/match/join";
-const quickStatusUrl = "/jarimatika/match/status";
-const createRoomUrl = "/jarimatika/room/create";
-const joinRoomUrl = "/jarimatika/room/join";
-const roomStatusUrl = "/jarimatika/room/status";
-const battleUrl = "/jarimatika/battle";
+const quickJoinUrl =
+    window?.jarimatikaMatchEndpoints?.quickJoinUrl || "/jarimatika/match/join";
+const quickStatusUrl =
+    window?.jarimatikaMatchEndpoints?.statusUrl || "/jarimatika/match/status";
+const createRoomUrl =
+    window?.jarimatikaMatchEndpoints?.createRoomUrl ||
+    "/jarimatika/room/create";
+const joinRoomUrl =
+    window?.jarimatikaMatchEndpoints?.joinRoomUrl || "/jarimatika/room/join";
+const roomStatusUrl =
+    window?.jarimatikaMatchEndpoints?.roomStatusUrl ||
+    "/jarimatika/room/status";
+const battleUrl =
+    window?.jarimatikaMatchEndpoints?.battleUrl || "/jarimatika/battle";
 const queueStatus = document.getElementById("queue-status");
 const queueHint = document.getElementById("queue-hint");
 const queueGameId = document.getElementById("queue-game-id");
@@ -17,11 +25,14 @@ const roomControls = document.getElementById("room-controls");
 const roomCodeInput = document.getElementById("room-code-input");
 const btnJoinRoom = document.getElementById("btn-join-room");
 const roomCreated = document.getElementById("room-created");
+const btnCopyRoomCode = document.getElementById("btn-copy-room-code");
+const roomWaitingNote = document.getElementById("room-waiting-note");
 
 let isSearching = false;
 let pollingInterval = null;
 let currentMode = "quick";
 let currentRoomCode = null;
+let isRoomHost = false;
 
 function setStatus(text, color = "text-slate-900") {
     queueStatus.textContent = text;
@@ -69,9 +80,7 @@ async function quickMatch() {
 
 async function createRoom() {
     currentMode = "room";
-    setRoomVisibility(true);
-    setStatus("Room dibuat. Tunggu lawan bergabung.", "text-slate-900");
-    queueHint.textContent = "Bagikan kode room ke teman.";
+    isRoomHost = true;
 
     try {
         const response = await fetch(createRoomUrl, {
@@ -88,9 +97,8 @@ async function createRoom() {
 
         if (data.status === "created") {
             currentRoomCode = data.room_code;
-            setElementText(queueGameId, data.room_code);
-            roomCreated.textContent = `Kode Room: ${data.room_code}`;
-            startRoomPolling(data.room_code);
+            // Redirect ke halaman waiting room
+            location.href = `/jarimatika/room/${encodeURIComponent(data.room_code)}/waiting`;
         } else {
             setStatus("Gagal membuat room.", "text-rose-400");
         }
@@ -101,6 +109,21 @@ async function createRoom() {
 
 async function joinRoom() {
     const code = roomCodeInput.value.trim().toUpperCase();
+
+    if (isRoomHost && currentRoomCode) {
+        try {
+            await navigator.clipboard.writeText(currentRoomCode);
+            setStatus("Kode room disalin ke clipboard.", "text-emerald-600");
+            return;
+        } catch (error) {
+            setStatus(
+                "Tidak bisa menyalin kode. Salin secara manual.",
+                "text-rose-400",
+            );
+            return;
+        }
+    }
+
     if (!code) {
         setStatus("Masukkan kode room terlebih dahulu.", "text-rose-400");
         return;
@@ -201,7 +224,12 @@ cancelButton?.addEventListener("click", () => {
 });
 
 btnQuick?.addEventListener("click", () => {
+    isRoomHost = false;
+    currentRoomCode = null;
     setRoomVisibility(false);
+    roomCodeInput.disabled = false;
+    btnCopyRoomCode?.classList.add("hidden");
+    roomWaitingNote?.classList.add("hidden");
     quickMatch();
 });
 
@@ -210,13 +238,38 @@ btnCreateRoom?.addEventListener("click", () => {
 });
 
 btnShowJoin?.addEventListener("click", () => {
+    isRoomHost = false;
     setRoomVisibility(true);
     setStatus("Masukkan kode room dan tekan Gabung.", "text-slate-900");
     queueHint.textContent = "Room code terisi manual.";
+    roomCodeInput.disabled = false;
+    roomCodeInput.value = "";
+    btnJoinRoom.textContent = "Gabung Room";
+    btnJoinRoom.classList.remove("bg-slate-500");
+    btnJoinRoom.classList.add("bg-indigo-600");
+    btnCopyRoomCode?.classList.add("hidden");
+    roomWaitingNote?.classList.add("hidden");
+    roomCreated.textContent = "Masukkan kode room untuk bergabung.";
+    setElementText(queueGameId, "-");
+    setElementText(queueOpponent, "Belum ada");
 });
 
 btnJoinRoom?.addEventListener("click", () => {
     joinRoom();
+});
+
+btnCopyRoomCode?.addEventListener("click", async () => {
+    if (!currentRoomCode) return;
+
+    try {
+        await navigator.clipboard.writeText(currentRoomCode);
+        setStatus("Kode room disalin ke clipboard.", "text-emerald-600");
+    } catch (error) {
+        setStatus(
+            "Tidak bisa menyalin kode. Salin secara manual.",
+            "text-rose-400",
+        );
+    }
 });
 
 window.addEventListener("DOMContentLoaded", () => {

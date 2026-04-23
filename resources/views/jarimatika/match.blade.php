@@ -75,6 +75,12 @@
                         Room</button>
                 </div>
                 <p id="room-created" class="mt-3 text-slate-600">Gunakan kode untuk mengundang teman.</p>
+                <button id="btn-copy-room-code" type="button"
+                    class="mt-3 px-4 py-2 bg-slate-200 text-slate-700 rounded-xl font-semibold hidden">
+                    Salin Kode Room
+                </button>
+                <p id="room-waiting-note" class="mt-3 text-slate-500 hidden">Ruang tunggu telah dibuat. Bagikan kode room ke
+                    teman dan tunggu lawan bergabung.</p>
             </div>
 
             <div
@@ -155,5 +161,15 @@
         </div>
     </div>
 
+    <script>
+        window.jarimatikaMatchEndpoints = {
+            quickJoinUrl: "{{ route('jarimatika.match.join') }}",
+            statusUrl: "{{ route('jarimatika.match.status') }}",
+            createRoomUrl: "{{ route('jarimatika.room.create') }}",
+            joinRoomUrl: "{{ route('jarimatika.room.join') }}",
+            roomStatusUrl: "{{ route('jarimatika.room.status') }}",
+            battleUrl: "{{ route('jarimatika.battle') }}",
+        };
+    </script>
     <script src="{{ asset('js/jarimatika-matchmaking.js') }}"></script>
 @endsection

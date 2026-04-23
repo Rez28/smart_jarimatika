@@ -7,20 +7,21 @@
         .jarimatika-container {
             font-family: 'Fredoka', sans-serif;
             background-color: #FFFBEB;
-            /* Krem terang */
             background-image: radial-gradient(#F79A19 1.5px, transparent 1.5px);
             background-size: 30px 30px;
             min-height: 100vh;
         }
 
-        /* CATATAN REVISI:
-           CSS .output_canvas { transform: scaleX(-1); } TELAH DIHAPUS.
-           Sekarang kamera menampilkan gambar asli tanpa efek cermin (mirror).
-        */
+        /* FIX: Canvas tidak di-mirror lagi, video saja yang mirror */
         .output_canvas {
             width: 100%;
             height: 100%;
             object-fit: cover;
+            transform: none !important; /* Pastikan tidak ada flip */
+        }
+
+        .input_video {
+            transform: scaleX(-1); /* Hanya video yang mirror untuk natural movement */
         }
 
         /* Game Cards & 3D Buttons */
@@ -62,6 +63,16 @@
         .btn-3d-blue:active {
             border-bottom-width: 0px;
             transform: translateY(6px);
+        }
+
+        /* Smooth animation untuk instruksi */
+        .fade-in-text {
+            animation: fadeIn 0.3s ease-in;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
         }
     </style>
 
@@ -204,15 +215,4 @@
 
     <script src="{{ asset('js/jarimatika-core.js') }}"></script>
     <script src="{{ asset('js/jarimatika-latihan.js') }}"></script>
-
-    <script>
-        document.getElementById('btn-camera-toggle').addEventListener('click', function() {
-            const text = document.getElementById('cam-text');
-            if (text.innerText.includes('Nyalakan')) {
-                text.innerText = 'Kamera ON';
-                this.classList.remove('btn-3d-blue');
-                this.classList.add('btn-3d-green');
-            }
-        });
-    </script>
 @endsection

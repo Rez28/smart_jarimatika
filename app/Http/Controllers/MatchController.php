@@ -165,4 +165,25 @@ class MatchController extends Controller
 
         return response()->json(['status' => 'closed']);
     }
+
+    public function showWaitingRoom(Request $request, $code)
+    {
+        $user = $request->user();
+        $room = Room::where('room_code', strtoupper($code))->first();
+
+        if (! $room) {
+            return redirect()->route('jarimatika.match')->with('error', 'Room tidak ditemukan');
+        }
+
+        if ($room->host_id !== $user->id && $room->guest_id !== $user->id) {
+            return redirect()->route('jarimatika.match')->with('error', 'Anda tidak memiliki akses ke room ini');
+        }
+
+        return view('jarimatika.waiting-room', [
+            'user' => $user,
+            'room' => $room,
+            'roomCode' => strtoupper($code),
+            'isHost' => $room->host_id === $user->id,
+        ]);
+    }
 }

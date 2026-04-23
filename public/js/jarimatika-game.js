@@ -1,5 +1,5 @@
 /**
- * JARIMATIKA GAME LOGIC (PLAY MODE)
+ * JARIMATIKA GAME LOGIC (PLAY MODE) + ACCURACY TRACKING
  * Palette: Green #BBCB64, Yellow #FFE52A, Orange #F79A19, Red #CF0F0F
  */
 
@@ -20,6 +20,14 @@ let isSpeaking = false;
 let isTransitioning = false;
 let isFinished = false;
 let hasLessonStarted = false;
+
+// === [FITUR BARU: EVALUATION DATA FOR ACCURACY] ===
+window.evaluationData = {
+    totalAttempts: 0,
+    correctDetections: 0,
+    logs: [],
+};
+// ==================================================
 
 // DOM Elements
 const elQuestionText = document.getElementById("question-text");
@@ -81,7 +89,7 @@ function startLesson() {
     const isPuluhan = currentTarget >= 10;
 
     // UPDATE WARNA TARGET (Default Merah/Oranye)
-    elTargetNum.style.color = "#CF0F0F"; // Merah
+    elTargetNum.style.color = "#CF0F0F";
     elFeedback.style.opacity = "0";
 
     elTargetNum.innerText = currentTarget;
@@ -91,10 +99,10 @@ function startLesson() {
 
     elQuestionText.innerText = "Tunjukkan Angka:";
     elSubInstruction.innerText = `Gunakan ${handSide}`;
-    elSubInstruction.style.color = "#F79A19"; // Oranye
+    elSubInstruction.style.color = "#F79A19";
 
     speak(
-        `Tunjukkan jari ${hintText} untuk angka ${currentTarget}. Gunakan ${handSide}.`
+        `Tunjukkan jari ${hintText} untuk angka ${currentTarget}. Gunakan ${handSide}.`,
     );
 }
 
@@ -107,6 +115,43 @@ function nextLevel() {
     sfxCorrect.play().catch(() => {});
 
     const currentTarget = lessonsList[lessonIndex];
+    const detected = window.gameState?.detectedNumber ?? 0;
+
+    // === [FITUR BARU: ACCURACY TRACKING LOGIC] ===
+    if (typeof window.evaluationData !== "undefined") {
+        window.evaluationData.totalAttempts++;
+
+        const isCorrect = detected === currentTarget;
+
+        if (isCorrect) {
+            window.evaluationData.correctDetections++;
+            console.log(
+                `[EVAL] ✓ TRUE POSITIVE | Target: ${currentTarget}, Detected: ${detected}`,
+            );
+        } else {
+            console.log(
+                `[EVAL] ✗ FALSE NEGATIVE | Target: ${currentTarget}, Detected: ${detected}`,
+            );
+        }
+
+        // Simpan log untuk export nanti (opsional)
+        window.evaluationData.logs.push({
+            timestamp: new Date().toISOString(),
+            target: currentTarget,
+            detected: detected,
+            correct: isCorrect,
+            fps: window.gameState?.currentFps || 0,
+        });
+
+        // Hitung akurasi running
+        const runningAcc = (
+            (window.evaluationData.correctDetections /
+                window.evaluationData.totalAttempts) *
+            100
+        ).toFixed(2);
+        console.log(`[EVAL] 📊 Running Accuracy: ${runningAcc}%`);
+    }
+    // ==============================================
 
     // Panggil snapPhoto (di Blade)
     if (window.snapPhoto) window.snapPhoto(currentTarget);
@@ -124,6 +169,37 @@ function finishTutorial() {
     elSubInstruction.innerText = "Kamu Luar Biasa!";
     btnNextLevel.classList.remove("hidden");
     speak("Luar biasa! Kamu sudah menyelesaikan semua angka.");
+
+    // === [FITUR BARU: LOG FINAL ACCURACY] ===
+    if (
+        typeof window.evaluationData !== "undefined" &&
+        window.evaluationData.totalAttempts > 0
+    ) {
+        const finalAcc = (
+            (window.evaluationData.correctDetections /
+                window.evaluationData.totalAttempts) *
+            100
+        ).toFixed(2);
+        console.log(`[EVAL] 🏁 FINAL ACCURACY: ${finalAcc}%`);
+        console.log(
+            `[EVAL] 📦 Total Attempts: ${window.evaluationData.totalAttempts}`,
+        );
+        console.log(
+            `[EVAL] ✅ Correct: ${window.evaluationData.correctDetections}`,
+        );
+
+        // Opsional: Simpan ke localStorage untuk analisis lanjut
+        try {
+            localStorage.setItem(
+                "jarimatika_evaluation",
+                JSON.stringify(window.evaluationData),
+            );
+            console.log("[EVAL] 💾 Data saved to localStorage");
+        } catch (e) {
+            console.warn("[EVAL] Could not save to localStorage:", e);
+        }
+    }
+    // ===========================================
 }
 
 function analyzeMistake() {
@@ -163,11 +239,11 @@ function gameLoop() {
         }
     } else {
         isHolding = false;
-        // if (!isSpeaking) analyzeMistake(); // Aktifkan jika butuh cerewet
+        // if (!isSpeaking) analyzeMistake();
     }
 }
 
-// === LOGIKA KAMERA & TOMBOL (Update Warna) ===
+// === LOGIKA KAMERA & TOMBOL ===
 let isCameraActive = false;
 
 // Default OFF (Merah)
@@ -237,3 +313,23 @@ elStartOverlay.addEventListener("click", () => {
         btnCamToggle.style.animation = "";
     }, 3000);
 });
+
+// === [FITUR BARU: FUNGSI EXPORT DATA EVALUASI] ===
+// Panggil window.exportEvaluationData() di console untuk download hasil tes
+window.exportEvaluationData = function () {
+    if (!window.evaluationData || window.evaluationData.totalAttempts === 0) {
+        console.warn("[EXPORT] Tidak ada data evaluasi untuk diexport");
+        return;
+    }
+
+    const dataStr = JSON.stringify(window.evaluationData, null, 2);
+    const blob = new Blob([dataStr], { type: "application/json" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `jarimatika-eval-${new Date().toISOString().slice(0, 10)}.json`;
+    a.click();
+    URL.revokeObjectURL(url);
+    console.log("[EXPORT] ✅ Data berhasil diunduh");
+};
+// =================================================

@@ -40,6 +40,10 @@ Route::post('/jarimatika/room/create', [App\Http\Controllers\MatchController::cl
     ->middleware(['auth', 'verified'])
     ->name('jarimatika.room.create');
 
+Route::get('/jarimatika/room/{code}/waiting', [App\Http\Controllers\MatchController::class, 'showWaitingRoom'])
+    ->middleware(['auth', 'verified'])
+    ->name('jarimatika.room.waiting');
+
 Route::post('/jarimatika/room/join', [App\Http\Controllers\MatchController::class, 'joinRoom'])
     ->middleware(['auth', 'verified'])
     ->name('jarimatika.room.join');
