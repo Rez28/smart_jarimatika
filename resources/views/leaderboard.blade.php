@@ -1,26 +1,6 @@
 @extends('layouts.app')
 
 @section('content')
-    @php
-        $users = [
-            ['rank' => 1, 'name' => 'Alya', 'xp' => 2560],
-            ['rank' => 2, 'name' => 'Raka', 'xp' => 2320],
-            ['rank' => 3, 'name' => 'Nina', 'xp' => 2175],
-            ['rank' => 4, 'name' => 'Fajar', 'xp' => 1950],
-            ['rank' => 5, 'name' => 'Dian', 'xp' => 1880],
-            ['rank' => 6, 'name' => 'Bima', 'xp' => 1750],
-            ['rank' => 7, 'name' => 'Sari', 'xp' => 1630],
-            ['rank' => 8, 'name' => 'Tio', 'xp' => 1505],
-            ['rank' => 9, 'name' => 'Maya', 'xp' => 1420],
-            ['rank' => 10, 'name' => 'Rina', 'xp' => 1310],
-        ];
-
-        $podium = collect($users)
-            ->whereIn('rank', [1, 2, 3])
-            ->sortBy('rank');
-        $currentUser = auth()->user();
-    @endphp
-
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Fredoka:wght@400;500;600;700;900&display=swap');
 
@@ -67,49 +47,60 @@
                     🏆 Hall of Fame
                 </div>
                 <h1 class="text-4xl md:text-5xl font-black text-slate-800 drop-shadow-sm mb-2">Papan Peringkat Global</h1>
-                <p class="text-slate-500 font-semibold">Berkompetisi dengan {{ count($users) }} pemain lainnya!</p>
+                <p class="text-slate-500 font-semibold">Berdasarkan Piala (Trophy) - Berkompetisi dengan
+                    {{ $users->count() }} pemain!</p>
             </div>
+
+            @php
+                $topThree = $users->take(3);
+            @endphp
 
             <div class="flex flex-col md:flex-row justify-center items-end gap-4 md:gap-6 mb-12 px-2">
 
-                <div
-                    class="order-2 md:order-1 w-full md:w-1/3 game-card border-b-[8px] border-slate-300 bg-slate-50 p-6 text-center relative md:h-56 flex flex-col justify-end">
+                @if ($topThree->count() >= 2)
                     <div
-                        class="absolute -top-6 left-1/2 -translate-x-1/2 bg-slate-200 text-slate-600 font-black text-xl w-12 h-12 flex items-center justify-center rounded-full border-4 border-white shadow-md">
-                        2
+                        class="order-2 md:order-1 w-full md:w-1/3 game-card border-b-[8px] border-slate-300 bg-slate-50 p-6 text-center relative md:h-56 flex flex-col justify-end">
+                        <div
+                            class="absolute -top-6 left-1/2 -translate-x-1/2 bg-slate-200 text-slate-600 font-black text-xl w-12 h-12 flex items-center justify-center rounded-full border-4 border-white shadow-md">
+                            2
+                        </div>
+                        <div class="text-5xl mb-2">🥈</div>
+                        <h3 class="text-2xl font-black text-slate-800 truncate">{{ $topThree[1]->name }}</h3>
+                        <p class="text-slate-500 font-bold text-xs mt-1">Lv. {{ $topThree[1]->level }}</p>
+                        <p class="text-[#be185d] font-black text-lg mt-2">🏆 {{ $topThree[1]->piala }} Piala</p>
                     </div>
-                    <div class="text-5xl mb-2">🥈</div>
-                    <h3 class="text-2xl font-black text-slate-800 truncate">{{ $podium->where('rank', 2)->first()['name'] }}
-                    </h3>
-                    <p class="text-[#38BDF8] font-bold text-lg mt-1">{{ $podium->where('rank', 2)->first()['xp'] }} XP</p>
-                </div>
+                @endif
 
-                <div
-                    class="order-1 md:order-2 w-full md:w-1/3 game-card border-b-[12px] border-[#F79A19] bg-[#FFE52A] p-6 text-center relative z-10 md:h-72 flex flex-col justify-end transform md:-translate-y-4">
-                    <div class="absolute -top-12 left-1/2 -translate-x-1/2 text-5xl animate-bounce">
-                        👑
-                    </div>
+                @if ($topThree->count() >= 1)
                     <div
-                        class="absolute -top-4 left-1/2 -translate-x-1/2 bg-[#F79A19] text-white font-black text-2xl w-14 h-14 flex items-center justify-center rounded-full border-4 border-white shadow-lg z-20">
-                        1
+                        class="order-1 md:order-2 w-full md:w-1/3 game-card border-b-[12px] border-[#F79A19] bg-[#FFE52A] p-6 text-center relative z-10 md:h-72 flex flex-col justify-end transform md:-translate-y-4">
+                        <div class="absolute -top-12 left-1/2 -translate-x-1/2 text-5xl animate-bounce">
+                            👑
+                        </div>
+                        <div
+                            class="absolute -top-4 left-1/2 -translate-x-1/2 bg-[#F79A19] text-white font-black text-2xl w-14 h-14 flex items-center justify-center rounded-full border-4 border-white shadow-lg z-20">
+                            1
+                        </div>
+                        <div class="text-7xl mb-4">🥇</div>
+                        <h3 class="text-3xl font-black text-slate-800 truncate">{{ $topThree[0]->name }}</h3>
+                        <p class="text-slate-600 font-bold text-sm mt-1">Lv. {{ $topThree[0]->level }}</p>
+                        <p class="text-[#c8790f] font-black text-2xl mt-2">🏆 {{ $topThree[0]->piala }} Piala</p>
                     </div>
-                    <div class="text-7xl mb-4">🥇</div>
-                    <h3 class="text-3xl font-black text-slate-800 truncate">{{ $podium->where('rank', 1)->first()['name'] }}
-                    </h3>
-                    <p class="text-[#c8790f] font-black text-xl mt-1">{{ $podium->where('rank', 1)->first()['xp'] }} XP</p>
-                </div>
+                @endif
 
-                <div
-                    class="order-3 md:order-3 w-full md:w-1/3 game-card border-b-[8px] border-orange-300 bg-orange-50 p-6 text-center relative md:h-48 flex flex-col justify-end">
+                @if ($topThree->count() >= 3)
                     <div
-                        class="absolute -top-6 left-1/2 -translate-x-1/2 bg-orange-200 text-orange-700 font-black text-xl w-12 h-12 flex items-center justify-center rounded-full border-4 border-white shadow-md">
-                        3
+                        class="order-3 md:order-3 w-full md:w-1/3 game-card border-b-[8px] border-orange-300 bg-orange-50 p-6 text-center relative md:h-48 flex flex-col justify-end">
+                        <div
+                            class="absolute -top-6 left-1/2 -translate-x-1/2 bg-orange-200 text-orange-700 font-black text-xl w-12 h-12 flex items-center justify-center rounded-full border-4 border-white shadow-md">
+                            3
+                        </div>
+                        <div class="text-4xl mb-2">🥉</div>
+                        <h3 class="text-xl font-black text-slate-800 truncate">{{ $topThree[2]->name }}</h3>
+                        <p class="text-slate-500 font-bold text-xs mt-1">Lv. {{ $topThree[2]->level }}</p>
+                        <p class="text-[#F79A19] font-black text-lg mt-2">🏆 {{ $topThree[2]->piala }} Piala</p>
                     </div>
-                    <div class="text-4xl mb-2">🥉</div>
-                    <h3 class="text-xl font-black text-slate-800 truncate">{{ $podium->where('rank', 3)->first()['name'] }}
-                    </h3>
-                    <p class="text-[#F79A19] font-bold text-lg mt-1">{{ $podium->where('rank', 3)->first()['xp'] }} XP</p>
-                </div>
+                @endif
 
             </div>
 
@@ -120,29 +111,32 @@
                     </h2>
                     <span
                         class="bg-slate-100 text-slate-500 font-bold px-4 py-1 rounded-full text-sm uppercase tracking-widest">Rank
-                        4 - 10</span>
+                        4+</span>
                 </div>
 
                 <div class="space-y-4">
                     @foreach ($users as $user)
-                        @if ($user['rank'] > 3)
+                        @if ($user->rank > 3)
                             <div class="rank-row flex items-center justify-between p-4 md:px-6">
                                 <div class="flex items-center gap-4 md:gap-6">
                                     <div
                                         class="w-10 h-10 rounded-full bg-slate-100 flex items-center justify-center font-black text-slate-400 text-lg">
-                                        #{{ $user['rank'] }}
+                                        #{{ $user->rank }}
                                     </div>
                                     <div class="flex items-center gap-3">
                                         <div
                                             class="w-12 h-12 rounded-full bg-[#38BDF8] text-white flex items-center justify-center font-black text-xl border-2 border-sky-200 hidden sm:flex">
-                                            {{ strtoupper(substr($user['name'], 0, 1)) }}
+                                            {{ strtoupper(substr($user->name, 0, 1)) }}
                                         </div>
-                                        <p class="font-bold text-slate-800 text-xl">{{ $user['name'] }}</p>
+                                        <div>
+                                            <p class="font-bold text-slate-800 text-lg">{{ $user->name }}</p>
+                                            <p class="text-xs text-slate-400 font-semibold">Lv. {{ $user->level }}</p>
+                                        </div>
                                     </div>
                                 </div>
                                 <div class="text-right">
-                                    <p class="text-[#BBCB64] font-black text-xl md:text-2xl">{{ $user['xp'] }} <span
-                                            class="text-sm text-slate-400">XP</span></p>
+                                    <p class="text-[#be185d] font-black text-xl md:text-2xl">🏆 {{ $user->piala }} <span
+                                            class="text-sm text-slate-400">Piala</span></p>
                                 </div>
                             </div>
                         @endif
@@ -167,8 +161,10 @@
                     <p class="text-2xl font-black drop-shadow-sm">
                         {{ $currentUser?->name ?? 'Guest' }}
                         <span class="text-[#FFE52A] ml-2">
-                            @if ($currentUser)
-                                (#{{ $currentUser->rank ?? '–' }})
+                            @if ($currentUser && isset($currentUser->rank))
+                                (#{{ $currentUser->rank }})
+                            @else
+                                (#–)
                             @endif
                         </span>
                     </p>
@@ -178,8 +174,8 @@
             <div class="flex items-center gap-3">
                 <div
                     class="bg-white/20 px-4 py-2 rounded-2xl border-2 border-white/30 backdrop-blur-sm flex items-center gap-2">
-                    <span class="text-2xl">⭐</span>
-                    <span class="font-black text-xl">{{ $currentUser?->total_xp ?? 0 }} XP</span>
+                    <span class="text-2xl">🏆</span>
+                    <span class="font-black text-xl">{{ $currentUser?->piala ?? 0 }} Piala</span>
                 </div>
                 <div
                     class="bg-[#BBCB64] border-b-4 border-[#8fa040] px-4 py-2 rounded-2xl flex items-center gap-2 shadow-sm">

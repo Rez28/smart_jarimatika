@@ -119,16 +119,36 @@
                             <p class="text-lime-100 font-medium text-sm mt-2 px-2">Jawab soal & kumpulkan XP</p>
                         </a>
 
-                        <a href="{{ route('jarimatika.match') }}"
-                            class="mode-btn mode-battle group relative overflow-hidden">
-                            <div
-                                class="absolute top-4 right-[-30px] bg-red-600 text-white text-xs font-black uppercase tracking-wider py-1 px-10 rotate-45 shadow-md">
-                                HOT!</div>
+                        @php
+                            $userLevel = auth()->user()->level ?? 1;
+                            $canBattle = $userLevel >= 5;
+                        @endphp
 
-                            <div class="text-5xl mb-4 group-hover:scale-110 transition-transform">⚔️</div>
-                            <h3 class="text-2xl font-black text-white drop-shadow-sm">Battle</h3>
-                            <p class="text-orange-100 font-medium text-sm mt-2 px-2">Lawan temanmu 1 vs 1!</p>
-                        </a>
+                        @if ($canBattle)
+                            <a href="{{ route('jarimatika.match') }}"
+                                class="mode-btn mode-battle group relative overflow-hidden hover:shadow-lg transition-all">
+                                <div
+                                    class="absolute top-4 right-[-30px] bg-red-600 text-white text-xs font-black uppercase tracking-wider py-1 px-10 rotate-45 shadow-md">
+                                    HOT!</div>
+
+                                <div class="text-5xl mb-4 group-hover:scale-110 transition-transform">⚔️</div>
+                                <h3 class="text-2xl font-black text-white drop-shadow-sm">Battle</h3>
+                                <p class="text-orange-100 font-medium text-sm mt-2 px-2">Lawan temanmu 1 vs 1!</p>
+                            </a>
+                        @else
+                            <button disabled
+                                class="mode-btn bg-gray-400 cursor-not-allowed opacity-60 relative overflow-hidden transform hover:scale-100">
+                                <div class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 text-5xl">🔒
+                                </div>
+
+                                <div class="flex flex-col items-center justify-center h-full">
+                                    <div class="text-3xl mb-2">⚔️</div>
+                                    <h3 class="text-lg font-black text-white drop-shadow-sm">Battle</h3>
+                                    <p class="text-gray-100 font-bold text-sm mt-2 px-2">🔓 Terbuka di Level 5</p>
+                                    <p class="text-gray-200 font-semibold text-xs mt-1">Level {{ $userLevel }}/5</p>
+                                </div>
+                            </button>
+                        @endif
 
                     </div>
                 </div>
@@ -169,6 +189,16 @@
                                 <p class="text-2xl font-black text-[#9a5c0b] mt-1">{{ auth()->user()->koin ?? 0 }}</p>
                             </div>
                             <div class="text-4xl">💰</div>
+                        </div>
+
+                        <div
+                            class="bg-[#FDF2F8] rounded-2xl p-4 flex items-center justify-between border-2 border-[#FBCFE8]">
+                            <div>
+                                <p class="text-xs font-bold text-[#9d174d] uppercase tracking-widest">🏆 Piala (Trophy)
+                                </p>
+                                <p class="text-2xl font-black text-[#be185d] mt-1">{{ auth()->user()->piala ?? 0 }}</p>
+                            </div>
+                            <div class="text-4xl animate-bounce">🏆</div>
                         </div>
                     </div>
                 </div>

@@ -81,6 +81,7 @@ async function quickMatch() {
 async function createRoom() {
     currentMode = "room";
     isRoomHost = true;
+    setStatus("Membuat room...", "text-slate-900");
 
     try {
         const response = await fetch(createRoomUrl, {
@@ -93,16 +94,30 @@ async function createRoom() {
             },
             body: JSON.stringify({}),
         });
-        const data = await response.json();
 
-        if (data.status === "created") {
+        console.log("Create Room Response Status:", response.status);
+        
+        const text = await response.text();
+        console.log("Create Room Response Text:", text);
+        
+        const data = JSON.parse(text);
+        console.log("Create Room Response Data:", data);
+
+        if (data.status === "created" && data.room_code) {
             currentRoomCode = data.room_code;
+            console.log("Room created, redirecting to:", `/jarimatika/room/${encodeURIComponent(data.room_code)}/waiting`);
+            setStatus("Room dibuat! Mengarahkan...", "text-emerald-600");
+            
             // Redirect ke halaman waiting room
-            location.href = `/jarimatika/room/${encodeURIComponent(data.room_code)}/waiting`;
+            setTimeout(() => {
+                window.location.href = `/jarimatika/room/${encodeURIComponent(data.room_code)}/waiting`;
+            }, 500);
         } else {
+            console.error("Unexpected response:", data);
             setStatus("Gagal membuat room.", "text-rose-400");
         }
     } catch (error) {
+        console.error("Create room error:", error);
         setStatus("Gagal terhubung ke server.", "text-rose-400");
     }
 }
@@ -218,9 +233,33 @@ function handleMatchFound(data) {
     }, 1200);
 }
 
-cancelButton?.addEventListener("click", () => {
+cancelButton?.addEventListener("click", async () => {
     stopPolling();
-    location.href = "/dashboard";
+    
+    try {
+        // Kirim request ke backend untuk membersihkan database
+        const response = await fetch("/jarimatika/match/cancel", {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+                "X-CSRF-TOKEN": document.querySelector(
+                    'meta[name="csrf-token"]',
+                ).content,
+            },
+            body: JSON.stringify({}),
+        });
+
+        const data = await response.json();
+
+        if (!response.ok) {
+            console.warn("Gagal membatalkan pencarian di backend:", data.message);
+        }
+    } catch (error) {
+        console.error("Error saat membatalkan pencarian:", error);
+    } finally {
+        // Redirect ke dashboard apakah berhasil atau tidak
+        location.href = "/dashboard";
+    }
 });
 
 btnQuick?.addEventListener("click", () => {

@@ -17,7 +17,24 @@ Route::get('/shop', [ShopController::class, 'index'])
     ->name('shop');
 
 Route::get('/leaderboard', function () {
-    return view('leaderboard');
+    $users = \App\Models\User::select('id', 'name', 'piala', 'total_xp', 'level')
+        ->orderByDesc('piala')
+        ->orderByDesc('total_xp')
+        ->get()
+        ->map(function ($user, $index) {
+            $user->rank = $index + 1;
+            return $user;
+        });
+
+    $currentUser = auth()->user();
+
+    // Find current user rank
+    $currentUserRank = $users->where('id', $currentUser->id)->first();
+    if ($currentUserRank) {
+        $currentUser->rank = $currentUserRank->rank;
+    }
+
+    return view('leaderboard', ['users' => $users, 'currentUser' => $currentUser]);
 })->middleware(['auth', 'verified'])->name('leaderboard');
 
 Route::get('/jarimatika/latihan', function () {
@@ -35,6 +52,10 @@ Route::post('/jarimatika/match/join', [App\Http\Controllers\MatchController::cla
 Route::get('/jarimatika/match/status', [App\Http\Controllers\MatchController::class, 'status'])
     ->middleware(['auth', 'verified'])
     ->name('jarimatika.match.status');
+
+Route::post('/jarimatika/match/cancel', [App\Http\Controllers\MatchController::class, 'cancelJoin'])
+    ->middleware(['auth', 'verified'])
+    ->name('jarimatika.match.cancel');
 
 Route::post('/jarimatika/room/create', [App\Http\Controllers\MatchController::class, 'createRoom'])
     ->middleware(['auth', 'verified'])
@@ -61,6 +82,10 @@ Route::post('/jarimatika/battle/score', [App\Http\Controllers\BattleController::
     ->middleware(['auth', 'verified'])
     ->name('jarimatika.battle.score');
 
+Route::post('/jarimatika/battle/result', [App\Http\Controllers\RewardController::class, 'processBattleResult'])
+    ->middleware(['auth', 'verified'])
+    ->name('jarimatika.battle.result');
+
 Route::post('/jarimatika/battle/signal', [App\Http\Controllers\BattleController::class, 'signal'])
     ->middleware(['auth', 'verified'])
     ->name('jarimatika.battle.signal');
@@ -73,6 +98,87 @@ Route::middleware('auth')->group(function () {
     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
     Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
     Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
+});
+
+// ==========================================
+// SHOP ROUTES - Gamification & Shop System
+// ==========================================
+Route::middleware(['auth', 'verified'])->prefix('shop')->name('shop.')->group(function () {
+    // Browse shop items
+    Route::get('/', [ShopController::class, 'index'])->name('index');
+    Route::get('/category/{type}', [ShopController::class, 'category'])->name('category');
+
+    // Item details
+    Route::get('/item/{shopItem}', [ShopController::class, 'show'])->name('show');
+
+    // Purchase item
+    Route::post('/item/{shopItem}/buy', [ShopController::class, 'buy'])->name('buy');
+
+    // User inventory
+    Route::get('/inventory', [ShopController::class, 'inventory'])->name('inventory');
+
+    // Equip/Unequip
+    Route::post('/item/{userItem}/equip', [ShopController::class, 'equip'])->name('equip');
+    Route::post('/item/{userItem}/unequip', [ShopController::class, 'unequip'])->name('unequip');
+});
+
+// ==========================================
+// REWARD ROUTES - Gamification System
+// ==========================================
+Route::middleware(['auth', 'verified'])->prefix('reward')->name('reward.')->group(function () {
+    // Process battle result & give rewards
+    Route::post('/battle-result', [\App\Http\Controllers\RewardController::class, 'processBattleResult'])->name('battle-result');
+
+    // Add EXP for practice/learning
+    Route::post('/latihan', [\App\Http\Controllers\RewardController::class, 'addExpLatihan'])->name('latihan');
+
+    // User profile & stats
+    Route::get('/profile', [\App\Http\Controllers\RewardController::class, 'profile'])->name('profile');
+
+    // Leaderboard
+    Route::get('/leaderboard', [\App\Http\Controllers\RewardController::class, 'leaderboard'])->name('leaderboard');
+    Route::get('/leaderboard/{type}', [\App\Http\Controllers\RewardController::class, 'leaderboardByType'])->name('leaderboard.type');
+
+    // Badges & Achievements
+    Route::get('/badges', [\App\Http\Controllers\RewardController::class, 'badges'])->name('badges');
+    Route::get('/achievements', [\App\Http\Controllers\RewardController::class, 'achievements'])->name('achievements');
+
+    // Daily rewards
+    Route::get('/daily', [\App\Http\Controllers\RewardController::class, 'dailyRewards'])->name('daily');
+    Route::post('/daily/claim', [\App\Http\Controllers\RewardController::class, 'claimDailyReward'])->name('daily.claim');
+});
+
+// ==========================================
+// ADMIN ROUTES - Admin Panel
+// ==========================================
+Route::middleware(['auth', 'verified', 'admin'])->prefix('admin')->name('admin.')->group(function () {
+    // Dashboard
+    Route::get('/', [\App\Http\Controllers\Admin\AdminController::class, 'dashboard'])->name('dashboard');
+
+    // Shop Items Management
+    Route::prefix('shop')->name('shop.')->group(function () {
+        Route::get('/', [\App\Http\Controllers\Admin\ShopItemController::class, 'index'])->name('index');
+        Route::get('/create', [\App\Http\Controllers\Admin\ShopItemController::class, 'create'])->name('create');
+        Route::post('/', [\App\Http\Controllers\Admin\ShopItemController::class, 'store'])->name('store');
+        Route::get('/{shopItem}/edit', [\App\Http\Controllers\Admin\ShopItemController::class, 'edit'])->name('edit');
+        Route::put('/{shopItem}', [\App\Http\Controllers\Admin\ShopItemController::class, 'update'])->name('update');
+        Route::delete('/{shopItem}', [\App\Http\Controllers\Admin\ShopItemController::class, 'destroy'])->name('destroy');
+    });
+
+    // User Management
+    Route::prefix('users')->name('users.')->group(function () {
+        Route::get('/', [\App\Http\Controllers\Admin\UserController::class, 'index'])->name('index');
+        Route::get('/{user}', [\App\Http\Controllers\Admin\UserController::class, 'show'])->name('show');
+        Route::patch('/{user}/stats', [\App\Http\Controllers\Admin\UserController::class, 'updateStats'])->name('update-stats');
+        Route::post('/{user}/reward', [\App\Http\Controllers\Admin\UserController::class, 'giveReward'])->name('give-reward');
+    });
+
+    // Game Statistics
+    Route::prefix('stats')->name('stats.')->group(function () {
+        Route::get('/overview', [\App\Http\Controllers\Admin\StatsController::class, 'overview'])->name('overview');
+        Route::get('/battles', [\App\Http\Controllers\Admin\StatsController::class, 'battles'])->name('battles');
+        Route::get('/achievements', [\App\Http\Controllers\Admin\StatsController::class, 'achievements'])->name('achievements');
+    });
 });
 
 require __DIR__ . '/auth.php';

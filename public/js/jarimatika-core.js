@@ -47,15 +47,8 @@ function getFingerState(landmarks, label) {
 function getJarimatikaNumber(fingers) {
     const code = fingers.join("");
     const patterns = {
-        "01000": 1,
-        "01100": 2,
-        "01110": 3,
-        "01111": 4,
-        10000: 5,
-        11000: 6,
-        11100: 7,
-        11110: 8,
-        11111: 9,
+        "01000": 1, "01100": 2, "01110": 3, "01111": 4,
+        "10000": 5, "11000": 6, "11100": 7, "11110": 8, "11111": 9,
     };
     return patterns[code] || 0;
 }
@@ -91,41 +84,26 @@ function onResults(results) {
         canvasElement.height,
     );
 
-    let rightNum = 0,
-        leftNum = 0;
-    let rightFingersRaw = [0, 0, 0, 0, 0],
-        leftFingersRaw = [0, 0, 0, 0, 0];
+    let rightNum = 0, leftNum = 0;
+    let rightFingersRaw = [0, 0, 0, 0, 0], leftFingersRaw = [0, 0, 0, 0, 0];
 
     // Reset landmarks
     lastLandmarks = [];
 
     if (results.multiHandLandmarks && results.multiHandedness) {
-        // Simpan semua landmark yang terdeteksi untuk keperluan cropping nanti
         lastLandmarks = results.multiHandLandmarks;
 
-        for (
-            let index = 0;
-            index < results.multiHandLandmarks.length;
-            index++
-        ) {
+        for (let index = 0; index < results.multiHandLandmarks.length; index++) {
             const classification = results.multiHandedness[index];
             const landmarks = results.multiHandLandmarks[index];
 
             // === IMPROVED LANDMARK VISUALIZATION ===
-            // Gambar Skeleton dengan garis lebih halus
             drawConnectors(canvasCtx, landmarks, HAND_CONNECTIONS, {
-                color: "#00FF00",
-                lineWidth: 3,
-                radius: 3
+                color: "#00FF00", lineWidth: 3, radius: 3
             });
-            
-            // Gambar Landmarks dengan dot yang lebih kecil dan clean
             drawLandmarks(canvasCtx, landmarks, {
-                color: "#FF0000",
-                lineWidth: 1,
-                radius: 4
+                color: "#FF0000", lineWidth: 1, radius: 4
             });
-            // ========================================
 
             const fingers = getFingerState(landmarks, classification.label);
             const num = getJarimatikaNumber(fingers);
@@ -142,32 +120,20 @@ function onResults(results) {
 
     canvasCtx.restore();
 
-    // === DRAW OVERLAY TEXT (TIDAK DI-MIRROR) ===
-    // Reset transform ke normal sebelum gambar text
+    // === DRAW OVERLAY TEXT ===
     canvasCtx.save();
     canvasCtx.setTransform(1, 0, 0, 1, 0, 0);
-    
-    // Background untuk text agar lebih terbaca
     canvasCtx.fillStyle = "rgba(0, 0, 0, 0.7)";
     canvasCtx.fillRect(10, 10, 140, 55);
-    
-    // Draw FPS
     canvasCtx.fillStyle = "#00FF00";
     canvasCtx.font = "bold 16px Fredoka, sans-serif";
     canvasCtx.fillText(`FPS: ${currentFps}`, 20, 32);
 
-    // Draw Hands count
     if (results.multiHandLandmarks && results.multiHandLandmarks.length > 0) {
         canvasCtx.fillStyle = "#FFFF00";
-        canvasCtx.fillText(
-            `Hands: ${results.multiHandLandmarks.length}`,
-            20,
-            54
-        );
+        canvasCtx.fillText(`Hands: ${results.multiHandLandmarks.length}`, 20, 54);
     }
-    
     canvasCtx.restore();
-    // =============================================
 
     window.gameState.detectedNumber = leftNum + rightNum;
     window.gameState.leftValue = leftNum;
@@ -175,19 +141,15 @@ function onResults(results) {
     window.gameState.leftFingersRaw = leftFingersRaw;
     window.gameState.rightFingersRaw = rightFingersRaw;
 
-    const userDisplay = document.getElementById("user-current-answer");
+    const userDisplay = document.getElementById("detected-number");
     if (userDisplay) userDisplay.innerText = window.gameState.detectedNumber;
 }
 
-// === SMART CROP ===
+// === SMART CROP (KEMBALI SECARA UTUH) ===
 window.captureHandSmart = function () {
     if (lastLandmarks.length === 0) return null;
 
-    // 1. Cari Bounding Box (Kotak Terluar) dari semua tangan yang terlihat
-    let minX = 1,
-        minY = 1,
-        maxX = 0,
-        maxY = 0;
+    let minX = 1, minY = 1, maxX = 0, maxY = 0;
 
     lastLandmarks.forEach((hand) => {
         hand.forEach((point) => {
@@ -198,18 +160,15 @@ window.captureHandSmart = function () {
         });
     });
 
-    // 2. Konversi ke Pixel & Tambah Padding
     const padding = 90;
     const width = canvasElement.width;
     const height = canvasElement.height;
 
-    // Karena canvas di-mirror (scaleX -1), koordinat X harus dibalik logikanya
     let pixelMinX = width - maxX * width - padding;
     let pixelMaxX = width - minX * width + padding;
     let pixelMinY = minY * height - padding;
     let pixelMaxY = maxY * height + padding;
 
-    // Validasi agar tidak keluar canvas
     if (pixelMinX < 0) pixelMinX = 0;
     if (pixelMinY < 0) pixelMinY = 0;
     let cropW = pixelMaxX - pixelMinX;
@@ -217,13 +176,11 @@ window.captureHandSmart = function () {
     if (pixelMinX + cropW > width) cropW = width - pixelMinX;
     if (pixelMinY + cropH > height) cropH = height - pixelMinY;
 
-    // 3. Buat Canvas Sementara untuk Crop
     const tempCanvas = document.createElement("canvas");
     tempCanvas.width = cropW;
     tempCanvas.height = cropH;
     const tempCtx = tempCanvas.getContext("2d");
 
-    // 4. Gambar hanya bagian yang dipilih dari canvas utama
     tempCtx.drawImage(
         canvasElement,
         pixelMinX,
@@ -241,35 +198,61 @@ window.captureHandSmart = function () {
 
 // === INISIALISASI MEDIAPIPE ===
 const hands = new Hands({
-    locateFile: (file) =>
-        `https://cdn.jsdelivr.net/npm/@mediapipe/hands/${file}`,
+    locateFile: (file) => `https://cdn.jsdelivr.net/npm/@mediapipe/hands/${file}`,
 });
 hands.setOptions({
     maxNumHands: 2,
-    modelComplexity: 1, // Tingkatkan ke 1 untuk akurasi lebih baik
-    minDetectionConfidence: 0.7, // Tingkatkan confidence
+    modelComplexity: 0, 
+    minDetectionConfidence: 0.7, 
     minTrackingConfidence: 0.7,
 });
 hands.onResults(onResults);
 
-const camera = new Camera(videoElement, {
-    onFrame: async () => {
-        await hands.send({ image: videoElement });
-    },
-    width: 640,
-    height: 480,
+// Pemanasan Mesin AI
+hands.initialize().then(() => {
+    console.log("System: MediaPipe AI Engine Ready!");
 });
 
-// === FUNGSI KONTROL KAMERA (Global Access) ===
+// === JEMBATAN MEDIAPIPE <-> WEBRTC ===
+let isTracking = false;
+let trackingLoopId = null;
+let lastVideoTime = -1; 
+
+async function processVideoFrame() {
+    if (!isTracking || !videoElement || videoElement.videoWidth === 0) {
+        if (isTracking) trackingLoopId = requestAnimationFrame(processVideoFrame);
+        return;
+    }
+
+    if (canvasElement.width !== videoElement.videoWidth) {
+        canvasElement.width = videoElement.videoWidth;
+        canvasElement.height = videoElement.videoHeight;
+    }
+
+    if (videoElement.currentTime !== lastVideoTime) {
+        lastVideoTime = videoElement.currentTime;
+        try {
+            await hands.send({ image: videoElement });
+        } catch (err) {
+            console.error("MediaPipe Error:", err);
+        }
+    }
+
+    if (isTracking) trackingLoopId = requestAnimationFrame(processVideoFrame);
+}
 
 window.startCameraSystem = function () {
-    console.log("System: Kamera Dinyalakan");
-    camera.start();
+    console.log("System: MediaPipe Tracking Diaktifkan");
+    if (!isTracking) {
+        isTracking = true;
+        processVideoFrame(); 
+    }
 };
 
 window.stopCameraSystem = function () {
-    console.log("System: Kamera Dimatikan");
-    camera.stop();
+    console.log("System: MediaPipe Tracking Dimatikan");
+    isTracking = false;
+    if (trackingLoopId) cancelAnimationFrame(trackingLoopId);
 
     if (canvasCtx && canvasElement) {
         canvasCtx.clearRect(0, 0, canvasElement.width, canvasElement.height);
@@ -278,6 +261,6 @@ window.stopCameraSystem = function () {
     }
 
     window.gameState.detectedNumber = 0;
-    const userDisplay = document.getElementById("user-current-answer");
+    const userDisplay = document.getElementById("detected-number");
     if (userDisplay) userDisplay.innerText = "0";
 };

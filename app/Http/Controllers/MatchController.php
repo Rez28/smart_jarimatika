@@ -23,12 +23,26 @@ class MatchController extends Controller
     {
         $user = $request->user();
 
+        // Auto-cleanup: Hapus game basi yang sudah lebih dari 30 menit
+        MatchmakingGame::where('created_at', '<', now()->subMinutes(30))->delete();
+
+        // Timeout untuk consider user offline (3 menit)
+        $timeoutMinutes = 3;
+        $offlineThreshold = now()->subMinutes($timeoutMinutes);
+
+        // 1. Check jika user sudah ada di waiting queue
         $existing = MatchmakingWaiting::where('user_id', $user->id)->first();
         if ($existing) {
             return response()->json(['status' => 'waiting']);
         }
 
-        $waiting = MatchmakingWaiting::where('user_id', '!=', $user->id)->first();
+        // 2. Cleanup: Hapus waiting records yang sudah offline (older dari 3 menit)
+        MatchmakingWaiting::where('updated_at', '<', $offlineThreshold)->delete();
+
+        // 3. Cari opponent yang masih active (updated_at dalam 3 menit terakhir)
+        $waiting = MatchmakingWaiting::where('user_id', '!=', $user->id)
+            ->where('updated_at', '>=', $offlineThreshold)
+            ->first();
 
         if ($waiting) {
             $opponent = User::find($waiting->user_id);
@@ -53,7 +67,6 @@ class MatchController extends Controller
         MatchmakingWaiting::create([
             'user_id' => $user->id,
             'user_name' => $user->name,
-            'created_at' => now(),
         ]);
 
         return response()->json(['status' => 'waiting']);
@@ -63,8 +76,20 @@ class MatchController extends Controller
     {
         $user = $request->user();
 
-        $game = MatchmakingGame::where('player1_id', $user->id)
-            ->orWhere('player2_id', $user->id)
+        // Auto-cleanup: Hapus game basi yang sudah lebih dari 30 menit
+        MatchmakingGame::where('created_at', '<', now()->subMinutes(30))->delete();
+
+        // Timeout untuk consider user offline (3 menit)
+        $timeoutMinutes = 3;
+        $offlineThreshold = now()->subMinutes($timeoutMinutes);
+
+        // 1. Check di MatchmakingGame (hanya game aktif dalam 10 menit terakhir)
+        $game = MatchmakingGame::where('created_at', '>=', now()->subMinutes(10))
+            ->where(function ($query) use ($user) {
+                $query->where('player1_id', $user->id)
+                    ->orWhere('player2_id', $user->id);
+            })
+            ->orderByDesc('created_at')
             ->first();
 
         if ($game) {
@@ -78,12 +103,51 @@ class MatchController extends Controller
             ]);
         }
 
-        $waiting = MatchmakingWaiting::where('user_id', $user->id)->first();
+        // 2. Cleanup: Hapus waiting records yang sudah offline
+        MatchmakingWaiting::where('updated_at', '<', $offlineThreshold)->delete();
+
+        // 3. Check di MatchmakingWaiting (hanya active records)
+        $waiting = MatchmakingWaiting::where('user_id', $user->id)
+            ->where('updated_at', '>=', $offlineThreshold)
+            ->first();
+
         if ($waiting) {
             return response()->json(['status' => 'waiting']);
         }
 
         return response()->json(['status' => 'idle']);
+    }
+
+    /**
+     * Cancel join - Clean up ghost matches
+     * Menghapus record dari MatchmakingWaiting dan MatchmakingGame
+     * untuk mencegah "Ghost Match" saat pemain membatalkan pencarian
+     */
+    public function cancelJoin(Request $request)
+    {
+        $user = $request->user();
+        $userId = $user->id;
+
+        try {
+            // 1. Hapus dari MatchmakingWaiting jika user sedang menunggu match
+            MatchmakingWaiting::where('user_id', $userId)->delete();
+
+            // 2. Hapus dari MatchmakingGame jika user ada di dalamnya
+            // (bisa sebagai player1 atau player2)
+            MatchmakingGame::where('player1_id', $userId)
+                ->orWhere('player2_id', $userId)
+                ->delete();
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Pencarian dibatalkan dan data dibersihkan',
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Gagal membatalkan pencarian: ' . $e->getMessage(),
+            ], 500);
+        }
     }
 
     // Room-based matchmaking

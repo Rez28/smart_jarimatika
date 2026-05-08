@@ -2,7 +2,6 @@
 
 namespace App\Models;
 
-// use Illuminate\Contracts\Auth\MustVerifyEmail;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
@@ -24,6 +23,7 @@ class User extends Authenticatable
         'total_xp',
         'koin',
         'level',
+        'piala',
     ];
 
     /**
@@ -47,5 +47,68 @@ class User extends Authenticatable
         'total_xp' => 'integer',
         'koin' => 'integer',
         'level' => 'integer',
+        'piala' => 'integer',
     ];
+
+    /**
+     * Relasi ke items yang dimiliki user (inventory)
+     */
+    public function items()
+    {
+        return $this->hasMany(UserItem::class);
+    }
+
+    /**
+     * Relasi ke shop items melalui user_items
+     */
+    public function shopItems()
+    {
+        return $this->belongsToMany(ShopItem::class, 'user_items', 'user_id', 'shop_item_id')
+            ->withPivot('is_equipped')
+            ->withTimestamps();
+    }
+
+    /**
+     * Ambil semua item yang sedang equipped
+     */
+    public function equippedItems()
+    {
+        return $this->shopItems()->where('user_items.is_equipped', true);
+    }
+
+    /**
+     * Hitung level berdasarkan total EXP
+     */
+    public function calculateLevel()
+    {
+        return intdiv($this->total_xp, 500) + 1;
+    }
+
+    /**
+     * Accessor untuk level
+     */
+    public function getLevelAttribute($value)
+    {
+        $calculatedLevel = $this->calculateLevel();
+        if ($calculatedLevel !== $value) {
+            $this->setAttribute('level', $calculatedLevel);
+        }
+        return $calculatedLevel;
+    }
+
+    public function getExpForNextLevel()
+    {
+        $currentLevel = $this->calculateLevel();
+        return ($currentLevel * 500) - $this->total_xp;
+    }
+
+    public function getExpProgress()
+    {
+        return $this->total_xp % 500;
+    }
+
+    public function getExpPerLevel()
+    {
+        return 500;
+    }
 }
