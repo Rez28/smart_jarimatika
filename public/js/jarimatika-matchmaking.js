@@ -314,5 +314,4 @@ btnCopyRoomCode?.addEventListener("click", async () => {
 window.addEventListener("DOMContentLoaded", () => {
     queueConnection.textContent = "Terhubung";
     queueConnection.className = "font-semibold text-emerald-400";
-    quickMatch();
 });

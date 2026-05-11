@@ -1,70 +1,127 @@
 /**
- * JARIMATIKA GAME LOGIC (PLAY MODE) + ACCURACY TRACKING
+ * JARIMATIKA GAME - MODE BELAJAR (SEQUENTIAL UNLOCK)
  * Palette: Green #BBCB64, Yellow #FFE52A, Orange #F79A19, Red #CF0F0F
+ * Fitur: Sequential Unlock 1-10, Hold Detection 2 Detik, Dynamic UI Update
  */
 
 const GAME_CONFIG = {
-    holdDuration: 2000,
-    hintDelay: 4000,
+    HOLD_DURATION: 2000,
+    FEEDBACK_DELAY: 1500,
+    HOLD_CHECK_INTERVAL: 50,
 };
 
-const lessonsList = [
-    1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 20, 30, 40, 50, 60, 70, 80, 90,
-];
+// ==========================================
+// STATE MANAGEMENT - SEQUENTIAL UNLOCK
+// ==========================================
 
-let lessonIndex = 0;
-let holdStartTime = 0;
-let lastHintTime = 0;
-let isHolding = false;
-let isSpeaking = false;
-let isTransitioning = false;
-let isFinished = false;
-let hasLessonStarted = false;
+let currentSelectedNumber = 1;       // Angka yang sedang dipilih (default: 1)
+let highestUnlocked = 1;            // Angka tertinggi yang sudah dibuka (dari backend)
+let isCameraActive = false;         // Apakah kamera sedang aktif
+let isHolding = false;              // Apakah sedang menahan (hold counter)
+let holdStartTime = 0;              // Waktu mulai hold
+let isProcessing = false;           // Flag untuk mencegah double trigger
 
-// === [FITUR BARU: EVALUATION DATA FOR ACCURACY] ===
+// Track evaluation data
 window.evaluationData = {
     totalAttempts: 0,
     correctDetections: 0,
     logs: [],
 };
-// ==================================================
 
-// DOM Elements
-const elQuestionText = document.getElementById("question-text");
-const elTargetNum = document.getElementById("target-number");
-const elSubInstruction = document.getElementById("sub-instruction");
-const elFeedback = document.getElementById("feedback-overlay");
-const btnNextLevel = document.getElementById("btn-next-level");
-const elStartOverlay = document.getElementById("start-overlay");
+// ==========================================
+// DOM ELEMENTS
+// ==========================================
 
-// Camera Buttons
-const btnCamToggle = document.getElementById("btn-camera-toggle");
-const txtCamText = document.getElementById("cam-text");
-const txtCamIcon = document.getElementById("cam-icon");
+// Header elements
+const elUnlockedDisplay = document.getElementById('unlocked-display');
 
-const sfxCorrect = new Audio("/sounds/correct.mp3");
+// Tutorial section (middle)
+const elTutorialTitle = document.getElementById('tutorial-title');
 
-const specificHints = {
-    1: "Telunjuk.",
-    2: "Telunjuk dan Tengah.",
-    3: "Telunjuk, Tengah, Manis.",
-    4: "Empat jari.",
-    5: "Jempol.",
-    6: "Jempol dan Telunjuk.",
-    7: "Jempol, Telunjuk, Tengah.",
-    8: "Jempol - Manis.",
-    9: "Semua jari.",
-};
+// Camera section (right)
+const elDetectedNumber = document.getElementById('detected-number');
+const elUserCurrentAnswer = document.getElementById('user-current-answer');
+const elTryBtn = document.getElementById('try-btn');
+const elFlashEffect = document.getElementById('flash-effect');
+const elFeedbackOverlay = document.getElementById('feedback-overlay');
+
+// Sidebar navigation buttons
+const navButtons = document.querySelectorAll('.nav-btn.unlocked');
+
+// Start overlay
+const elStartOverlay = document.getElementById('start-overlay');
+
+// Audio SFX
+const sfxCorrect = new Audio('/sounds/correct.mp3');
+
+// ==========================================
+// INITIALIZATION
+// ==========================================
+
+document.addEventListener('DOMContentLoaded', function() {
+    console.log('[BELAJAR] ✅ Mode Belajar initialized');
+
+    // Ambil highestUnlocked dari global variable (passed dari Blade)
+    highestUnlocked = window.unlockedNumber || 1;
+    currentSelectedNumber = highestUnlocked; // Start dengan angka terbuka terakhir
+
+    console.log(`[BELAJAR] 🔓 Highest Unlocked: ${highestUnlocked}`);
+    console.log(`[BELAJAR] 📍 Current Selected: ${currentSelectedNumber}`);
+
+    // Initialize event listeners
+    initializeEventListeners();
+
+    // Update tutorial title
+    updateTutorialDisplay();
+
+    // Start game loop
+    startGameLoop();
+});
+
+// ==========================================
+// EVENT LISTENERS SETUP
+// ==========================================
+
+function initializeEventListeners() {
+    console.log('[BELAJAR] 🎮 Setting up event listeners...');
+
+    // 1. SIDEBAR NAVIGATION BUTTONS (LEFT COLUMN)
+    document.querySelectorAll('.nav-btn.unlocked').forEach(btn => {
+        btn.addEventListener('click', function() {
+            const number = parseInt(this.dataset.number);
+            selectNumber(number);
+        });
+    });
+
+    // 2. TRY BUTTON (RIGHT COLUMN - PURPLE FRAME)
+    if (elTryBtn) {
+        elTryBtn.addEventListener('click', function() {
+            startCameraForPractice();
+        });
+    }
+
+    // 3. CLOSE START OVERLAY
+    const startBtn = document.querySelector('.start-btn');
+    if (startBtn) {
+        startBtn.addEventListener('click', function() {
+            closeStartOverlay();
+        });
+    }
+
+    console.log('[BELAJAR] ✅ Event listeners attached');
+}
+
+// ==========================================
+// HELPER FUNCTIONS
+// ==========================================
 
 function speak(text, callback) {
     if ("speechSynthesis" in window) {
         window.speechSynthesis.cancel();
-        isSpeaking = true;
         const utterance = new SpeechSynthesisUtterance(text);
         utterance.lang = "id-ID";
         utterance.rate = 1.0;
         utterance.onend = () => {
-            isSpeaking = false;
             if (callback) callback();
         };
         window.speechSynthesis.speak(utterance);
@@ -73,263 +130,465 @@ function speak(text, callback) {
     }
 }
 
-// NOTE: Fungsi snapPhoto ada di file blade (dioverride)
+function sleep(ms) {
+    return new Promise(resolve => setTimeout(resolve, ms));
+}
 
-function startLesson() {
-    isTransitioning = false;
-    isHolding = false;
-    lastHintTime = Date.now() + 2000;
+// ==========================================
+// NUMBER SELECTION (SIDEBAR BUTTONS)
+// ==========================================
 
-    if (lessonIndex >= lessonsList.length) {
-        finishTutorial();
+/**
+ * Saat user klik tombol angka di sidebar (yang tidak digembok)
+ */
+function selectNumber(number) {
+    // Validasi: hanya bisa memilih angka yang sudah dibuka
+    if (number > highestUnlocked) {
+        console.warn(`[BELAJAR] ⚠️ Angka ${number} belum dibuka`);
+        Swal.fire({
+            icon: 'warning',
+            title: 'Tidak Bisa Dipilih',
+            text: `Angka ${number} masih dikunci. Selesaikan angka ${highestUnlocked} terlebih dahulu!`,
+            confirmButtonColor: '#F79A19',
+        });
         return;
     }
 
-    const currentTarget = lessonsList[lessonIndex];
-    const isPuluhan = currentTarget >= 10;
+    // Update state
+    currentSelectedNumber = number;
+    console.log(`[BELAJAR] 📍 Angka dipilih: ${currentSelectedNumber}`);
 
-    // UPDATE WARNA TARGET (Default Merah/Oranye)
-    elTargetNum.style.color = "#CF0F0F";
-    elFeedback.style.opacity = "0";
+    // Update tutorial display
+    updateTutorialDisplay();
 
-    elTargetNum.innerText = currentTarget;
-    let handSide = isPuluhan ? "Tangan KIRI" : "Tangan KANAN";
-    let baseNum = isPuluhan ? currentTarget / 10 : currentTarget;
-    let hintText = specificHints[baseNum] || "";
+    // Stop camera jika sedang aktif
+    if (isCameraActive) {
+        stopCamera();
+    }
 
-    elQuestionText.innerText = "Tunjukkan Angka:";
-    elSubInstruction.innerText = `Gunakan ${handSide}`;
-    elSubInstruction.style.color = "#F79A19";
-
-    speak(
-        `Tunjukkan jari ${hintText} untuk angka ${currentTarget}. Gunakan ${handSide}.`,
-    );
+    // Reset hold state
+    resetHoldState();
 }
 
-function nextLevel() {
-    isTransitioning = true;
+/**
+ * Update tampilan tutorial saat angka berubah
+ */
+function updateTutorialDisplay() {
+    if (elTutorialTitle) {
+        elTutorialTitle.textContent = currentSelectedNumber;
+    }
+    console.log(`[BELAJAR] 📚 Tutorial diupdate untuk angka: ${currentSelectedNumber}`);
+}
 
-    // UPDATE WARNA SUKSES (Hijau)
-    elTargetNum.style.color = "#BBCB64";
-    elFeedback.style.opacity = "1";
-    sfxCorrect.play().catch(() => {});
+// ==========================================
+// CAMERA CONTROL
+// ==========================================
 
-    const currentTarget = lessonsList[lessonIndex];
-    const detected = window.gameState?.detectedNumber ?? 0;
+/**
+ * Saat user klik tombol "Coba Praktekkan! 📷"
+ */
+function startCameraForPractice() {
+    if (isCameraActive) {
+        console.log('[BELAJAR] 📷 Kamera sudah aktif');
+        return;
+    }
 
-    // === [FITUR BARU: ACCURACY TRACKING LOGIC] ===
-    if (typeof window.evaluationData !== "undefined") {
-        window.evaluationData.totalAttempts++;
+    console.log(`[BELAJAR] 📷 Memulai kamera untuk angka: ${currentSelectedNumber}`);
 
-        const isCorrect = detected === currentTarget;
+    // Jalankan startCameraSystem dari jarimatika-core.js
+    if (typeof window.startCameraSystem === 'function') {
+        window.startCameraSystem();
+        isCameraActive = true;
+        console.log('[BELAJAR] ✅ Sistem kamera dimulai');
+    } else {
+        console.error('[BELAJAR] ❌ Fungsi startCameraSystem tidak ditemukan');
+        Swal.fire({
+            icon: 'error',
+            title: 'Error',
+            text: 'Gagal menghubungkan ke sistem kamera',
+            confirmButtonColor: '#CF0F0F',
+        });
+    }
+}
 
-        if (isCorrect) {
-            window.evaluationData.correctDetections++;
-            console.log(
-                `[EVAL] ✓ TRUE POSITIVE | Target: ${currentTarget}, Detected: ${detected}`,
-            );
-        } else {
-            console.log(
-                `[EVAL] ✗ FALSE NEGATIVE | Target: ${currentTarget}, Detected: ${detected}`,
-            );
-        }
+/**
+ * Stop camera
+ */
+function stopCamera() {
+    console.log('[BELAJAR] 📷 Menghentikan kamera');
 
-        // Simpan log untuk export nanti (opsional)
-        window.evaluationData.logs.push({
-            timestamp: new Date().toISOString(),
-            target: currentTarget,
-            detected: detected,
-            correct: isCorrect,
-            fps: window.gameState?.currentFps || 0,
+    if (typeof window.stopCameraSystem === 'function') {
+        window.stopCameraSystem();
+        isCameraActive = false;
+        console.log('[BELAJAR] ✅ Kamera dihentikan');
+    }
+}
+
+// ==========================================
+// HOLD STATE MANAGEMENT
+// ==========================================
+
+/**
+ * Mulai count hold time
+ */
+function startHold() {
+    if (isHolding) return;
+
+    isHolding = true;
+    holdStartTime = performance.now();
+    console.log(`[BELAJAR] ⏱️ Hold dimulai untuk angka: ${currentSelectedNumber}`);
+}
+
+/**
+ * Cek apakah hold sudah cukup lama (2 detik)
+ */
+function checkHoldDuration(currentTime) {
+    if (!isHolding) return false;
+
+    const elapsedTime = currentTime - holdStartTime;
+
+    // Jika sudah 2 detik
+    if (elapsedTime >= GAME_CONFIG.HOLD_DURATION) {
+        return true; // Hold berhasil!
+    }
+
+    return false;
+}
+
+/**
+ * Reset hold state
+ */
+function resetHoldState() {
+    isHolding = false;
+    holdStartTime = 0;
+}
+
+// ==========================================
+// SUCCESS HANDLING
+// ==========================================
+
+/**
+ * Saat user berhasil menahan angka selama 2 detik
+ */
+async function onCorrectAnswer() {
+    if (isProcessing) return; // Prevent double trigger
+    isProcessing = true;
+
+    console.log(`[BELAJAR] ✅ JAWABAN BENAR untuk angka: ${currentSelectedNumber}`);
+
+    // Update evaluation data
+    window.evaluationData.totalAttempts++;
+    window.evaluationData.correctDetections++;
+
+    // 1. Play success sound
+    playSuccessSound();
+
+    // 2. Show visual feedback
+    showSuccessFeedback();
+
+    // 3. Stop camera otomatis
+    stopCamera();
+
+    // 4. Reset hold state
+    resetHoldState();
+
+    // 5. Delay sebelum lanjut (untuk UX yang lebih baik)
+    await sleep(GAME_CONFIG.FEEDBACK_DELAY);
+
+    // 6. Jika currentSelectedNumber == highestUnlocked, unlock next number
+    if (currentSelectedNumber === highestUnlocked) {
+        console.log(`[BELAJAR] 🔓 Mencoba membuka angka berikutnya...`);
+        await unlockNextNumber(currentSelectedNumber);
+    } else {
+        // Jika belum unlock, hanya tampilkan congratulations
+        showCongratulations(currentSelectedNumber);
+    }
+
+    isProcessing = false;
+}
+
+/**
+ * Play success sound / TTS
+ */
+function playSuccessSound() {
+    const praises = [
+        "Hebat! 🌟",
+        "Bagus sekali! 💪",
+        "Luar biasa! 🎉",
+        "Sempurna! 🏆",
+        "Pintar! 👏",
+    ];
+
+    const randomPraise = praises[Math.floor(Math.random() * praises.length)];
+    console.log(`[BELAJAR] 🔊 Pujian: ${randomPraise}`);
+
+    // If speak function exists (TTS)
+    if (typeof speak === 'function') {
+        speak(randomPraise);
+    }
+
+    // Play SFX
+    if (sfxCorrect) {
+        sfxCorrect.play().catch(() => {});
+    }
+}
+
+/**
+ * Show visual feedback (flash + star)
+ */
+function showSuccessFeedback() {
+    // Flash effect
+    if (elFlashEffect) {
+        elFlashEffect.style.opacity = '0.8';
+        setTimeout(() => {
+            elFlashEffect.style.opacity = '0';
+        }, 300);
+    }
+
+    // Star feedback
+    if (elFeedbackOverlay) {
+        elFeedbackOverlay.style.opacity = '1';
+        setTimeout(() => {
+            elFeedbackOverlay.style.opacity = '0';
+        }, 800);
+    }
+
+    console.log('[BELAJAR] ✨ Visual feedback ditampilkan');
+}
+
+/**
+ * Show congratulations alert (SweetAlert2)
+ */
+function showCongratulations(number) {
+    const praises = [
+        "Hebat! 🌟",
+        "Bagus sekali! 💪",
+        "Luar biasa! 🎉",
+        "Sempurna! 🏆",
+    ];
+
+    const randomPraise = praises[Math.floor(Math.random() * praises.length)];
+
+    Swal.fire({
+        icon: 'success',
+        title: randomPraise,
+        html: `<h2 style="font-size: 2.5rem; margin: 20px 0; color: #BBCB64;">Angka ${number}</h2>
+               <p style="font-size: 1.125rem; color: #64748b;">Sempurna! Kamu bisa melanjutkan.</p>`,
+        confirmButtonColor: '#BBCB64',
+        confirmButtonText: 'OK',
+    });
+
+    console.log(`[BELAJAR] 🎉 Congratulations ditampilkan untuk angka: ${number}`);
+}
+
+/**
+ * Unlock next number via API
+ */
+async function unlockNextNumber(completedNumber) {
+    console.log(`[BELAJAR] 📡 Mengirim permintaan unlock untuk angka: ${completedNumber}`);
+
+    try {
+        const response = await fetch(window.updateProgressUrl, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRF-TOKEN': window.csrfToken,
+            },
+            body: JSON.stringify({
+                completed_number: completedNumber,
+            }),
         });
 
-        // Hitung akurasi running
-        const runningAcc = (
-            (window.evaluationData.correctDetections /
-                window.evaluationData.totalAttempts) *
-            100
-        ).toFixed(2);
-        console.log(`[EVAL] 📊 Running Accuracy: ${runningAcc}%`);
-    }
-    // ==============================================
+        const data = await response.json();
 
-    // Panggil snapPhoto (di Blade)
-    if (window.snapPhoto) window.snapPhoto(currentTarget);
+        if (data.success) {
+            console.log(`[BELAJAR] ✅ Unlock berhasil! Angka berikutnya: ${data.highest_number_unlocked}`);
 
-    speak(`Hebat! Angka ${currentTarget} benar. Selanjutnya...`, () => {
-        lessonIndex++;
-        setTimeout(startLesson, 1500);
-    });
-}
+            // Update state
+            highestUnlocked = data.highest_number_unlocked;
+            window.unlockedNumber = data.highest_number_unlocked;
 
-function finishTutorial() {
-    isFinished = true;
-    elTargetNum.innerText = "🎉";
-    elQuestionText.innerText = "SELESAI!";
-    elSubInstruction.innerText = "Kamu Luar Biasa!";
-    btnNextLevel.classList.remove("hidden");
-    speak("Luar biasa! Kamu sudah menyelesaikan semua angka.");
+            // Update UI
+            updateUnlockUI(data.highest_number_unlocked);
 
-    // === [FITUR BARU: LOG FINAL ACCURACY] ===
-    if (
-        typeof window.evaluationData !== "undefined" &&
-        window.evaluationData.totalAttempts > 0
-    ) {
-        const finalAcc = (
-            (window.evaluationData.correctDetections /
-                window.evaluationData.totalAttempts) *
-            100
-        ).toFixed(2);
-        console.log(`[EVAL] 🏁 FINAL ACCURACY: ${finalAcc}%`);
-        console.log(
-            `[EVAL] 📦 Total Attempts: ${window.evaluationData.totalAttempts}`,
-        );
-        console.log(
-            `[EVAL] ✅ Correct: ${window.evaluationData.correctDetections}`,
-        );
-
-        // Opsional: Simpan ke localStorage untuk analisis lanjut
-        try {
-            localStorage.setItem(
-                "jarimatika_evaluation",
-                JSON.stringify(window.evaluationData),
-            );
-            console.log("[EVAL] 💾 Data saved to localStorage");
-        } catch (e) {
-            console.warn("[EVAL] Could not save to localStorage:", e);
-        }
-    }
-    // ===========================================
-}
-
-function analyzeMistake() {
-    const now = Date.now();
-    if (now - lastHintTime < GAME_CONFIG.hintDelay) return;
-    lastHintTime = now;
-    // ... Logika hint tetap sama ...
-}
-
-// GAME LOOP
-function gameLoop() {
-    requestAnimationFrame(gameLoop);
-    if (!hasLessonStarted || !isCameraActive) return;
-
-    if (
-        !window.gameState ||
-        !window.gameState.isSystemReady ||
-        isTransitioning ||
-        isFinished
-    )
-        return;
-
-    const currentTarget = lessonsList[lessonIndex];
-    const detected = window.gameState.detectedNumber;
-
-    if (detected === currentTarget) {
-        if (!isHolding) {
-            holdStartTime = Date.now();
-            isHolding = true;
-            // Instruksi Tahan (Kuning)
-            elSubInstruction.innerText = "Tahan sebentar... 📸";
-            elSubInstruction.style.color = "#FFE52A";
-            lastHintTime = Date.now() + 99999;
+            // Show unlock alert
+            showUnlockAlert(data.highest_number_unlocked);
         } else {
-            const elapsed = Date.now() - holdStartTime;
-            if (elapsed >= GAME_CONFIG.holdDuration) nextLevel();
+            console.error('[BELAJAR] ❌ Unlock gagal:', data.message);
+            Swal.fire({
+                icon: 'error',
+                title: 'Gagal Membuka',
+                text: data.message,
+                confirmButtonColor: '#CF0F0F',
+            });
         }
-    } else {
-        isHolding = false;
-        // if (!isSpeaking) analyzeMistake();
+    } catch (error) {
+        console.error('[BELAJAR] ❌ Error unlock:', error);
+        Swal.fire({
+            icon: 'error',
+            title: 'Error',
+            text: 'Gagal menghubungi server',
+            confirmButtonColor: '#CF0F0F',
+        });
     }
 }
 
-// === LOGIKA KAMERA & TOMBOL ===
-let isCameraActive = false;
+/**
+ * Update UI saat angka baru dibuka
+ */
+function updateUnlockUI(nextNumber) {
+    console.log(`[BELAJAR] 🎨 Update UI untuk angka berikutnya: ${nextNumber}`);
 
-// Default OFF (Merah)
-if (btnCamToggle) {
-    btnCamToggle.classList.add("off");
-    btnCamToggle.style.borderColor = "#CF0F0F";
-    btnCamToggle.style.color = "#CF0F0F";
-    txtCamText.innerText = "KAMERA: OFF";
-    txtCamIcon.innerText = "🚫";
+    // Update header "Terbuka sampai"
+    if (elUnlockedDisplay) {
+        elUnlockedDisplay.textContent = nextNumber;
+    }
+
+    // Update sidebar button: ubah dari locked ke unlocked
+    const nextBtn = document.querySelector(`[data-number="${nextNumber}"]`);
+    if (nextBtn) {
+        // Remove locked class
+        nextBtn.classList.remove('locked');
+
+        // Add unlocked class
+        nextBtn.classList.add('unlocked');
+
+        // Remove disabled attribute
+        nextBtn.removeAttribute('disabled');
+
+        // Update button text (remove lock icon)
+        nextBtn.innerHTML = `${nextNumber}`;
+
+        // Add click handler
+        nextBtn.addEventListener('click', function() {
+            selectNumber(nextNumber);
+        });
+
+        console.log(`[BELAJAR] ✅ Tombol ${nextNumber} dibuka di UI`);
+    }
 }
 
-btnCamToggle.addEventListener("click", () => {
-    if (isCameraActive) {
-        // MATIKAN (Merah)
-        if (window.stopCameraSystem) window.stopCameraSystem();
-
-        btnCamToggle.classList.remove("on");
-        btnCamToggle.classList.add("off");
-
-        btnCamToggle.style.borderColor = "#CF0F0F";
-        btnCamToggle.style.color = "#CF0F0F";
-        btnCamToggle.style.background = "#fff";
-
-        txtCamText.innerText = "KAMERA: OFF";
-        txtCamIcon.innerText = "🚫";
-        elSubInstruction.innerText = "Kamera Nonaktif";
-        isCameraActive = false;
-    } else {
-        // NYALAKAN (Hijau)
-        if (window.startCameraSystem) window.startCameraSystem();
-
-        btnCamToggle.classList.remove("off");
-        btnCamToggle.classList.add("on");
-
-        btnCamToggle.style.borderColor = "#BBCB64";
-        btnCamToggle.style.color = "#fff";
-        btnCamToggle.style.background = "#BBCB64";
-
-        txtCamText.innerText = "KAMERA: ON";
-        txtCamIcon.innerText = "📹";
-        elSubInstruction.innerText = "Kamera Aktif";
-        isCameraActive = true;
-
-        if (!hasLessonStarted) {
-            hasLessonStarted = true;
-            setTimeout(() => {
-                speak("Kamera siap. Ayo mulai!", () => {
-                    startLesson();
-                    gameLoop();
-                });
-            }, 1000);
+/**
+ * Show unlock alert (SweetAlert2)
+ */
+function showUnlockAlert(nextNumber) {
+    Swal.fire({
+        icon: 'success',
+        title: 'Angka Terbuka! 🔓',
+        html: `<h2 style="font-size: 2.5rem; margin: 20px 0; color: #BBCB64;">Angka ${nextNumber}</h2>
+               <p style="font-size: 1.125rem; color: #64748b;">Berhasil dibuka! Silakan lanjut ke angka berikutnya.</p>`,
+        confirmButtonColor: '#BBCB64',
+        confirmButtonText: 'Lanjutkan',
+    }).then((result) => {
+        if (result.isConfirmed) {
+            // Automatically select next number
+            selectNumber(nextNumber);
         }
+    });
+
+    console.log(`[BELAJAR] 🎉 Alert unlock ditampilkan untuk angka: ${nextNumber}`);
+}
+
+// ==========================================
+// GAME LOOP (requestAnimationFrame)
+// ==========================================
+
+/**
+ * Main game loop - deteksi tangan secara real-time
+ */
+function startGameLoop() {
+    console.log('[BELAJAR] 🎮 Game loop dimulai');
+
+    function gameLoop() {
+        // Pastikan kamera aktif dan sudah ready
+        if (!isCameraActive || !window.gameState || !window.gameState.isSystemReady) {
+            requestAnimationFrame(gameLoop);
+            return;
+        }
+
+        // Deteksi tangan saat ini
+        const detectedNumber = window.gameState.detectedNumber || 0;
+
+        // Update UI detected number secara real-time
+        if (elDetectedNumber) {
+            elDetectedNumber.textContent = detectedNumber;
+        }
+        if (elUserCurrentAnswer) {
+            elUserCurrentAnswer.textContent = detectedNumber;
+        }
+
+        // Jika user sudah memulai hold
+        if (isHolding && detectedNumber === currentSelectedNumber) {
+            // Terus check apakah hold sudah cukup lama
+            const currentTime = performance.now();
+            if (checkHoldDuration(currentTime)) {
+                // Hold berhasil!
+                onCorrectAnswer();
+                resetHoldState();
+            }
+        } else if (detectedNumber === currentSelectedNumber && !isHolding) {
+            // Baru pertama kali detect angka yang benar
+            console.log(`[BELAJAR] 🖐️ Deteksi angka yang benar: ${currentSelectedNumber}`);
+            startHold();
+        } else if (detectedNumber !== currentSelectedNumber) {
+            // User menggerakkan jari (tidak sesuai)
+            if (isHolding) {
+                console.log(`[BELAJAR] ❌ Hold terputus. Diharapkan: ${currentSelectedNumber}, Terdeteksi: ${detectedNumber}`);
+                resetHoldState();
+            }
+        }
+
+        // Continue loop
+        requestAnimationFrame(gameLoop);
     }
-});
 
-// START OVERLAY
-elStartOverlay.addEventListener("click", () => {
-    elStartOverlay.style.opacity = "0";
-    setTimeout(() => (elStartOverlay.style.display = "none"), 500);
-    elQuestionText.innerText = "Persiapan";
-    elSubInstruction.innerText = "Silakan Nyalakan Kamera";
-    speak("Selamat datang! Tekan tombol kamera untuk mulai belajar.");
+    // Start loop
+    gameLoop();
+}
 
-    // Animasi tombol kamera
-    btnCamToggle.style.animation = "pulse 1s infinite";
-    setTimeout(() => {
-        btnCamToggle.style.animation = "";
-    }, 3000);
-});
+// ==========================================
+// UTILITY FUNCTIONS
+// ==========================================
 
-// === [FITUR BARU: FUNGSI EXPORT DATA EVALUASI] ===
-// Panggil window.exportEvaluationData() di console untuk download hasil tes
-window.exportEvaluationData = function () {
-    if (!window.evaluationData || window.evaluationData.totalAttempts === 0) {
-        console.warn("[EXPORT] Tidak ada data evaluasi untuk diexport");
-        return;
+/**
+ * Close start overlay
+ */
+function closeStartOverlay() {
+    const overlay = document.getElementById('start-overlay');
+    if (overlay) {
+        overlay.style.opacity = '0';
+        overlay.style.transition = 'opacity 0.4s ease';
+        setTimeout(() => {
+            overlay.style.display = 'none';
+        }, 400);
     }
 
-    const dataStr = JSON.stringify(window.evaluationData, null, 2);
-    const blob = new Blob([dataStr], { type: "application/json" });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = `jarimatika-eval-${new Date().toISOString().slice(0, 10)}.json`;
-    a.click();
-    URL.revokeObjectURL(url);
-    console.log("[EXPORT] ✅ Data berhasil diunduh");
+    console.log('[BELAJAR] 🎮 Start overlay ditutup');
+}
+
+// ==========================================
+// LOGGING & EXPORT
+// ==========================================
+
+/**
+ * Export evaluation data untuk logging
+ */
+window.exportEvaluationData = function() {
+    if (window.evaluationData.totalAttempts > 0) {
+        const accuracy = (
+            (window.evaluationData.correctDetections / window.evaluationData.totalAttempts) * 100
+        ).toFixed(2);
+        console.log('[BELAJAR] 📊 DATA EVALUASI:', {
+            totalAttempts: window.evaluationData.totalAttempts,
+            correctDetections: window.evaluationData.correctDetections,
+            accuracy: `${accuracy}%`,
+        });
+        return {
+            totalAttempts: window.evaluationData.totalAttempts,
+            correctDetections: window.evaluationData.correctDetections,
+            accuracy,
+        };
+    }
 };
-// =================================================
+
+console.log('[BELAJAR] ✅ jarimatika-game.js berhasil dimuat');

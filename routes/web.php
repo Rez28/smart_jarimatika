@@ -1,8 +1,10 @@
 <?php
 
+use App\Http\Controllers\AdminController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\ShopController;
 use Illuminate\Support\Facades\Route;
+use Illuminate\Support\Facades\Auth;
 
 Route::get('/', function () {
     return view('welcome');
@@ -26,7 +28,7 @@ Route::get('/leaderboard', function () {
             return $user;
         });
 
-    $currentUser = auth()->user();
+    $currentUser = Auth::user();
 
     // Find current user rank
     $currentUserRank = $users->where('id', $currentUser->id)->first();
@@ -41,42 +43,47 @@ Route::get('/jarimatika/latihan', function () {
     return view('jarimatika.latihan');
 })->middleware(['auth', 'verified'])->name('jarimatika.latihan');
 
+Route::get('/jarimatika/tebak-jari', function () {
+    return view('jarimatika.tebak');
+})->middleware(['auth', 'verified'])->name('jarimatika.tebak');
+
 Route::get('/jarimatika/match', [App\Http\Controllers\MatchController::class, 'show'])
-    ->middleware(['auth', 'verified'])
+    ->middleware(['auth', 'verified', 'check.level'])
     ->name('jarimatika.match');
 
 Route::post('/jarimatika/match/join', [App\Http\Controllers\MatchController::class, 'join'])
-    ->middleware(['auth', 'verified'])
+    ->middleware(['auth', 'verified', 'check.level'])
     ->name('jarimatika.match.join');
 
 Route::get('/jarimatika/match/status', [App\Http\Controllers\MatchController::class, 'status'])
-    ->middleware(['auth', 'verified'])
+    ->middleware(['auth', 'verified', 'check.level'])
     ->name('jarimatika.match.status');
 
 Route::post('/jarimatika/match/cancel', [App\Http\Controllers\MatchController::class, 'cancelJoin'])
-    ->middleware(['auth', 'verified'])
+    ->middleware(['auth', 'verified', 'check.level'])
     ->name('jarimatika.match.cancel');
 
 Route::post('/jarimatika/room/create', [App\Http\Controllers\MatchController::class, 'createRoom'])
-    ->middleware(['auth', 'verified'])
+    ->middleware(['auth', 'verified', 'check.level'])
     ->name('jarimatika.room.create');
 
 Route::get('/jarimatika/room/{code}/waiting', [App\Http\Controllers\MatchController::class, 'showWaitingRoom'])
-    ->middleware(['auth', 'verified'])
+    ->middleware(['auth', 'verified', 'check.level'])
     ->name('jarimatika.room.waiting');
 
 Route::post('/jarimatika/room/join', [App\Http\Controllers\MatchController::class, 'joinRoom'])
-    ->middleware(['auth', 'verified'])
+    ->middleware(['auth', 'verified', 'check.level'])
     ->name('jarimatika.room.join');
 
 Route::get('/jarimatika/room/status', [App\Http\Controllers\MatchController::class, 'roomStatus'])
-    ->middleware(['auth', 'verified'])
+    ->middleware(['auth', 'verified', 'check.level'])
     ->name('jarimatika.room.status');
 
 Route::get('/jarimatika/battle', function () {
     $gameId = request()->query('gameId', 'demo');
+
     return view('jarimatika.battle', compact('gameId'));
-})->middleware(['auth', 'verified'])->name('jarimatika.battle');
+})->middleware(['auth', 'verified', 'check.level'])->name('jarimatika.battle');
 
 Route::post('/jarimatika/battle/score', [App\Http\Controllers\BattleController::class, 'submitScore'])
     ->middleware(['auth', 'verified'])
@@ -90,9 +97,13 @@ Route::post('/jarimatika/battle/signal', [App\Http\Controllers\BattleController:
     ->middleware(['auth', 'verified'])
     ->name('jarimatika.battle.signal');
 
-Route::get('/jarimatika/belajar', function () {
-    return view('jarimatika.belajar');
-})->middleware(['auth', 'verified'])->name('jarimatika.belajar');
+Route::get('/jarimatika/belajar', [App\Http\Controllers\BelajarController::class, 'index'])
+    ->middleware(['auth', 'verified'])
+    ->name('jarimatika.belajar');
+
+Route::post('/jarimatika/belajar/progress', [App\Http\Controllers\BelajarController::class, 'updateProgress'])
+    ->middleware(['auth', 'verified'])
+    ->name('jarimatika.belajar.progress');
 
 Route::middleware('auth')->group(function () {
     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
@@ -103,23 +114,15 @@ Route::middleware('auth')->group(function () {
 // ==========================================
 // SHOP ROUTES - Gamification & Shop System
 // ==========================================
-Route::middleware(['auth', 'verified'])->prefix('shop')->name('shop.')->group(function () {
-    // Browse shop items
-    Route::get('/', [ShopController::class, 'index'])->name('index');
-    Route::get('/category/{type}', [ShopController::class, 'category'])->name('category');
-
-    // Item details
-    Route::get('/item/{shopItem}', [ShopController::class, 'show'])->name('show');
-
+Route::middleware(['auth', 'verified'])->group(function () {
     // Purchase item
-    Route::post('/item/{shopItem}/buy', [ShopController::class, 'buy'])->name('buy');
+    Route::post('/shop/buy/{itemId}', [ShopController::class, 'buy'])->name('shop.buy');
 
-    // User inventory
-    Route::get('/inventory', [ShopController::class, 'inventory'])->name('inventory');
+    // Equip item
+    Route::post('/shop/equip/{itemId}', [ShopController::class, 'equip'])->name('shop.equip');
 
-    // Equip/Unequip
-    Route::post('/item/{userItem}/equip', [ShopController::class, 'equip'])->name('equip');
-    Route::post('/item/{userItem}/unequip', [ShopController::class, 'unequip'])->name('unequip');
+    // Unequip item
+    Route::post('/shop/unequip/{itemId}', [ShopController::class, 'unequip'])->name('shop.unequip');
 });
 
 // ==========================================
@@ -151,33 +154,28 @@ Route::middleware(['auth', 'verified'])->prefix('reward')->name('reward.')->grou
 // ==========================================
 // ADMIN ROUTES - Admin Panel
 // ==========================================
-Route::middleware(['auth', 'verified', 'admin'])->prefix('admin')->name('admin.')->group(function () {
+// ADMIN ROUTES - Admin Panel
+// ==========================================
+Route::middleware(['auth', 'verified', 'is_admin'])->prefix('admin')->name('admin.')->group(function () {
     // Dashboard
-    Route::get('/', [\App\Http\Controllers\Admin\AdminController::class, 'dashboard'])->name('dashboard');
-
-    // Shop Items Management
-    Route::prefix('shop')->name('shop.')->group(function () {
-        Route::get('/', [\App\Http\Controllers\Admin\ShopItemController::class, 'index'])->name('index');
-        Route::get('/create', [\App\Http\Controllers\Admin\ShopItemController::class, 'create'])->name('create');
-        Route::post('/', [\App\Http\Controllers\Admin\ShopItemController::class, 'store'])->name('store');
-        Route::get('/{shopItem}/edit', [\App\Http\Controllers\Admin\ShopItemController::class, 'edit'])->name('edit');
-        Route::put('/{shopItem}', [\App\Http\Controllers\Admin\ShopItemController::class, 'update'])->name('update');
-        Route::delete('/{shopItem}', [\App\Http\Controllers\Admin\ShopItemController::class, 'destroy'])->name('destroy');
-    });
+    Route::get('/', [AdminController::class, 'dashboard'])->name('dashboard');
 
     // User Management
     Route::prefix('users')->name('users.')->group(function () {
-        Route::get('/', [\App\Http\Controllers\Admin\UserController::class, 'index'])->name('index');
-        Route::get('/{user}', [\App\Http\Controllers\Admin\UserController::class, 'show'])->name('show');
-        Route::patch('/{user}/stats', [\App\Http\Controllers\Admin\UserController::class, 'updateStats'])->name('update-stats');
-        Route::post('/{user}/reward', [\App\Http\Controllers\Admin\UserController::class, 'giveReward'])->name('give-reward');
+        Route::get('/', [AdminController::class, 'users'])->name('index');
+        Route::get('/{userId}/edit', [AdminController::class, 'editUser'])->name('edit');
+        Route::put('/{userId}', [AdminController::class, 'updateUser'])->name('update');
+        Route::delete('/{userId}', [AdminController::class, 'deleteUser'])->name('delete');
     });
 
-    // Game Statistics
-    Route::prefix('stats')->name('stats.')->group(function () {
-        Route::get('/overview', [\App\Http\Controllers\Admin\StatsController::class, 'overview'])->name('overview');
-        Route::get('/battles', [\App\Http\Controllers\Admin\StatsController::class, 'battles'])->name('battles');
-        Route::get('/achievements', [\App\Http\Controllers\Admin\StatsController::class, 'achievements'])->name('achievements');
+    // Shop Items Management
+    Route::prefix('shop')->name('shop.')->group(function () {
+        Route::get('/', [AdminController::class, 'shop'])->name('index');
+        Route::get('/create', [AdminController::class, 'createShopItem'])->name('create');
+        Route::post('/', [AdminController::class, 'storeShopItem'])->name('store');
+        Route::get('/{itemId}/edit', [AdminController::class, 'editShopItem'])->name('edit');
+        Route::put('/{itemId}', [AdminController::class, 'updateShopItem'])->name('update');
+        Route::delete('/{itemId}', [AdminController::class, 'deleteShopItem'])->name('delete');
     });
 });
 

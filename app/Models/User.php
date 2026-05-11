@@ -24,6 +24,7 @@ class User extends Authenticatable
         'koin',
         'level',
         'piala',
+        'is_admin',
     ];
 
     /**
@@ -48,7 +49,16 @@ class User extends Authenticatable
         'koin' => 'integer',
         'level' => 'integer',
         'piala' => 'integer',
+        'is_admin' => 'boolean',
     ];
+
+    /**
+     * Relasi ke user progress (sequential unlock tracking)
+     */
+    public function progress()
+    {
+        return $this->hasOne(UserProgress::class);
+    }
 
     /**
      * Relasi ke items yang dimiliki user (inventory)
@@ -77,23 +87,77 @@ class User extends Authenticatable
     }
 
     /**
+     * Ambil avatar yang sedang dipakai (equipped)
+     * Return: image_path dari avatar yang equipped, atau default avatar path
+     */
+    public function equippedAvatar()
+    {
+        $item = $this->shopItems()
+            ->where('type', 'avatar')
+            ->where('user_items.is_equipped', true)
+            ->first();
+
+        return $item ? $item->image_path : '👤'; // Default avatar emoji
+    }
+
+    /**
+     * Ambil border yang sedang dipakai (equipped)
+     * Return: image_path dari border yang equipped, atau default border path
+     */
+    public function equippedBorder()
+    {
+        $item = $this->shopItems()
+            ->where('type', 'border')
+            ->where('user_items.is_equipped', true)
+            ->first();
+
+        return $item ? $item->image_path : '🖼️'; // Default border emoji
+    }
+
+    /**
+     * Ambil badge yang sedang dipakai (equipped)
+     * Return: image_path dari badge yang equipped, atau default badge path
+     */
+    public function equippedBadge()
+    {
+        $item = $this->shopItems()
+            ->where('type', 'badge')
+            ->where('user_items.is_equipped', true)
+            ->first();
+
+        return $item ? $item->image_path : '🏅'; // Default badge emoji
+    }
+
+    /**
+     * Relasi ke match histories sebagai pemain 1
+     */
+    public function matchesAsPlayer1()
+    {
+        return $this->hasMany(MatchHistory::class, 'user_id_1');
+    }
+
+    /**
+     * Relasi ke match histories sebagai pemain 2
+     */
+    public function matchesAsPlayer2()
+    {
+        return $this->hasMany(MatchHistory::class, 'user_id_2');
+    }
+
+    /**
+     * Relasi ke match histories sebagai pemenang
+     */
+    public function matchesAsWinner()
+    {
+        return $this->hasMany(MatchHistory::class, 'winner_id');
+    }
+
+    /**
      * Hitung level berdasarkan total EXP
      */
     public function calculateLevel()
     {
         return intdiv($this->total_xp, 500) + 1;
-    }
-
-    /**
-     * Accessor untuk level
-     */
-    public function getLevelAttribute($value)
-    {
-        $calculatedLevel = $this->calculateLevel();
-        if ($calculatedLevel !== $value) {
-            $this->setAttribute('level', $calculatedLevel);
-        }
-        return $calculatedLevel;
     }
 
     public function getExpForNextLevel()

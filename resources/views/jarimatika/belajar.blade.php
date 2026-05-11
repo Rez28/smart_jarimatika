@@ -2,228 +2,512 @@
 
 @section('content')
     <style>
-        @import url('https://fonts.googleapis.com/css2?family=Fredoka:wght@400;500;600;700&display=swap');
+        @import url('https://fonts.googleapis.com/css2?family=Fredoka:wght@400;500;600;700;900&display=swap');
 
         .jarimatika-container {
             font-family: 'Fredoka', sans-serif;
             background-color: #FFFBEB;
-            background-image: radial-gradient(#FFE52A 1.5px, transparent 1.5px);
+            background-image: radial-gradient(#F79A19 1.5px, transparent 1.5px);
             background-size: 30px 30px;
             min-height: 100vh;
         }
 
-        /* === FIX: Canvas tidak di-mirror, hanya video === */
+        /* Canvas & Video */
         .output_canvas {
             width: 100%;
             height: 100%;
             object-fit: cover;
-            transform: none !important; /* Pastikan tidak ada flip CSS */
+            transform: none !important;
         }
 
         .input_video {
-            transform: scaleX(-1); /* Hanya video yang mirror untuk natural movement */
+            transform: scaleX(-1);
             width: 100%;
             height: 100%;
             object-fit: cover;
         }
-        /* =========================================== */
 
-        .game-card {
-            background: white;
-            border-radius: 24px;
-            border-bottom: 8px solid #e2e8f0;
-            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.05);
+        /* Navigation Buttons - Left Column */
+        .nav-btn {
+            width: 100%;
+            padding: 16px;
+            border-radius: 16px;
+            font-weight: 700;
+            font-size: 1.125rem;
+            transition: all 0.2s ease;
+            border-bottom: 4px solid;
+            cursor: pointer;
+            margin-bottom: 8px;
         }
 
-        .btn-3d-green {
+        .nav-btn.unlocked {
             background-color: #BBCB64;
-            border-bottom: 6px solid #8fa040;
-            transition: all 0.15s ease;
+            border-bottom-color: #8fa040;
+            color: white;
         }
 
-        .btn-3d-green:active {
+        .nav-btn.unlocked:active {
+            transform: translateY(4px);
             border-bottom-width: 0px;
-            transform: translateY(6px);
         }
 
-        .btn-3d-orange {
-            background-color: #F79A19;
-            border-bottom: 6px solid #c8790f;
-            transition: all 0.15s ease;
+        .nav-btn.locked {
+            background-color: #cbd5e1;
+            border-bottom-color: #94a3b8;
+            color: #64748b;
+            cursor: not-allowed;
+            opacity: 0.6;
         }
 
-        .btn-3d-orange:active {
-            border-bottom-width: 0px;
-            transform: translateY(6px);
+        .nav-btn:hover:not(.locked) {
+            transform: translateY(-2px);
         }
 
-        .snapshot-card {
+        /* Orange Frame (Tutorial) */
+        .frame-orange {
+            background: white;
+            border: 6px solid #F79A19;
+            border-radius: 24px;
+            padding: 32px;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.05);
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .frame-orange h2 {
+            font-size: 1.875rem;
+            font-weight: 900;
+            color: #1e293b;
+            margin-bottom: 24px;
+            text-align: center;
+        }
+
+        .frame-orange .tutorial-placeholder {
+            flex-grow: 1;
+            border: 3px dashed #cbd5e1;
+            border-radius: 16px;
+            background-color: #f1f5f9;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-bottom: 20px;
+            min-height: 200px;
+        }
+
+        .frame-orange .tutorial-placeholder p {
+            color: #94a3b8;
+            font-weight: 500;
+            text-align: center;
+        }
+
+        .frame-orange .instruction-text {
+            text-align: center;
+            color: #64748b;
+            font-size: 1rem;
+            line-height: 1.5;
+        }
+
+        /* Purple Frame (Camera) */
+        .frame-purple {
+            background: white;
+            border: 6px solid #8b5cf6;
+            border-radius: 24px;
+            padding: 32px;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.05);
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .frame-purple .camera-indicator {
+            text-align: center;
+            margin-bottom: 20px;
+        }
+
+        .frame-purple .camera-indicator p {
+            font-size: 0.875rem;
+            color: #64748b;
+            margin-bottom: 8px;
+        }
+
+        .frame-purple .detected-number {
+            font-size: 4rem;
+            font-weight: 900;
+            color: #8b5cf6;
+            text-align: center;
+        }
+
+        .frame-purple .camera-container {
+            flex-grow: 1;
+            background: #1e293b;
             border-radius: 16px;
             overflow: hidden;
-            border: 4px solid #FFE52A;
-            width: 100px;
-            height: 100px;
-            background-color: #f8fafc;
-            flex-shrink: 0;
+            margin: 20px 0;
+            position: relative;
+            aspect-ratio: 4/3;
+            border: 3px solid #334155;
         }
 
-        .snapshot-img {
+        .frame-purple .camera-container canvas,
+        .frame-purple .camera-container video {
             width: 100%;
             height: 100%;
-            object-fit: cover;
         }
 
-        /* Debug Panel */
-        .debug-panel {
-            position: fixed;
-            bottom: 16px;
-            right: 16px;
-            background: rgba(0, 0, 0, 0.85);
+        .frame-purple .try-btn {
+            background-color: #8b5cf6;
+            border-bottom: 6px solid #6d28d9;
             color: white;
-            padding: 12px 16px;
-            border-radius: 12px;
-            font-family: monospace;
-            font-size: 12px;
-            z-index: 100;
-            line-height: 1.6;
-            backdrop-filter: blur(4px);
-            border: 1px solid rgba(255, 255, 255, 0.1);
+            padding: 16px;
+            border-radius: 16px;
+            font-weight: 700;
+            font-size: 1rem;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            text-align: center;
         }
 
-        .debug-panel .label { color: #94a3b8; }
-        .debug-panel .value-fps { color: #FFE52A; font-weight: bold; }
-        .debug-panel .value-acc { color: #BBCB64; font-weight: bold; }
-        .debug-panel .value-det { color: #38BDF8; font-weight: bold; }
-        .debug-panel .value-low { color: #CF0F0F; }
+        .frame-purple .try-btn:active {
+            transform: translateY(4px);
+            border-bottom-width: 0px;
+        }
+
+        .frame-purple .try-btn:hover {
+            transform: translateY(-2px);
+        }
+
+        /* Responsive Grid */
+        @media (max-width: 768px) {
+            .grid-3-col {
+                grid-template-columns: 1fr !important;
+            }
+
+            .col-span-2 {
+                grid-column: span 1 !important;
+            }
+
+            .col-span-5 {
+                grid-column: span 1 !important;
+            }
+
+            .frame-orange,
+            .frame-purple {
+                min-height: 400px;
+            }
+        }
+
+        /* START OVERLAY */
+        .start-overlay {
+            position: fixed;
+            inset: 0;
+            background: rgba(15, 23, 42, 0.8);
+            backdrop-filter: blur(8px);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 50;
+        }
+
+        .start-card {
+            background: white;
+            padding: 40px;
+            border-radius: 40px;
+            border-bottom: 12px solid #BBCB64;
+            max-width: 500px;
+            width: 100%;
+            text-align: center;
+            box-shadow: 0 20px 50px rgba(0, 0, 0, 0.3);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .start-card .emoji {
+            font-size: 5rem;
+            margin-bottom: 16px;
+            display: inline-block;
+            animation: bounce 1s infinite;
+        }
+
+        @keyframes bounce {
+
+            0%,
+            100% {
+                transform: translateY(0);
+            }
+
+            50% {
+                transform: translateY(-10px);
+            }
+        }
+
+        .start-card h1 {
+            font-size: 2.25rem;
+            font-weight: 900;
+            color: #1e293b;
+            margin-bottom: 16px;
+        }
+
+        .start-card p {
+            font-size: 1.125rem;
+            color: #475569;
+            margin-bottom: 32px;
+            line-height: 1.6;
+        }
+
+        .start-card button {
+            background-color: #BBCB64;
+            border-bottom: 6px solid #8fa040;
+            color: white;
+            padding: 16px 24px;
+            font-size: 1.5rem;
+            font-weight: 900;
+            border-radius: 16px;
+            width: 100%;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .start-card button:active {
+            transform: translateY(6px);
+            border-bottom-width: 0px;
+        }
     </style>
 
-    <div class="jarimatika-container py-8 px-4 sm:px-6">
-        <div class="max-w-6xl mx-auto">
+    <div class="jarimatika-container py-6 px-4 sm:px-6 lg:px-8">
+        <div class="max-w-7xl mx-auto">
 
-            <header class="game-card mb-8 px-8 py-5 flex items-center justify-between border-b-[8px] border-[#FFE52A]">
-                <div class="flex items-center gap-4">
-                    <div class="bg-[#FFE52A] p-3 rounded-full shadow-sm text-3xl">🎓</div>
-                    <div>
-                        <h1 class="text-2xl font-bold text-slate-800 tracking-wide">PENGENALAN ANGKA</h1>
-                        <p class="text-slate-500 font-medium">Mari belajar bentuk jari 1 sampai 10!</p>
+            <!-- HEADER -->
+            <header class="mb-8 p-6 bg-white rounded-2xl border-b-2 border-[#FFE52A]">
+                <div class="flex items-center justify-between">
+                    <div class="flex items-center gap-3">
+                        <span class="text-4xl">🎓</span>
+                        <div>
+                            <h1 class="text-2xl font-black text-slate-800">MODE BELAJAR</h1>
+                            <p class="text-sm text-slate-500">Sequential Unlock • Angka 1-10</p>
+                        </div>
                     </div>
-                </div>
-                <div class="hidden md:flex items-center gap-3 bg-slate-100 px-5 py-2 rounded-2xl border-2 border-slate-200">
-                    <span class="text-slate-500 font-semibold">Status:</span>
-                    <span id="sub-instruction" class="font-bold text-[#F79A19]">Menunggu...</span>
+                    <div class="hidden md:flex items-center gap-2 bg-slate-100 px-4 py-2 rounded-xl">
+                        <span class="text-2xl">🔓</span>
+                        <div>
+                            <p class="text-xs text-slate-500">Terbuka sampai</p>
+                            <p class="text-xl font-black text-[#BBCB64]"><span
+                                    id="unlocked-display">{{ $unlockedNumber }}</span></p>
+                        </div>
+                    </div>
                 </div>
             </header>
 
-            <main class="grid grid-cols-1 lg:grid-cols-[1.2fr_1fr] gap-8">
+            <!-- 3 COLUMN GRID LAYOUT -->
+            <div class="grid gap-4 grid-3-col" style="grid-template-columns: 200px 1fr 1fr;">
 
-                <section class="flex flex-col gap-6">
-                    <div class="game-card p-4 border-b-[8px] border-[#BBCB64]">
-                        <div
-                            class="relative w-full aspect-[4/3] bg-slate-800 rounded-2xl overflow-hidden border-4 border-slate-700 shadow-inner">
-                            <video class="input_video absolute inset-0 opacity-0 pointer-events-none" autoplay muted
-                                playsinline></video>
-                            <canvas class="output_canvas w-full h-full object-cover" width="640" height="480"></canvas>
+                <!-- LEFT COLUMN: NAVIGATION BUTTONS (col-span-2 equivalent) -->
+                <div class="col-span-2" style="grid-column: span 1;">
+                    <div
+                        style="background: white; border-radius: 24px; padding: 24px; box-shadow: 0 10px 25px rgba(0,0,0,0.05); max-height: calc(100vh - 200px); overflow-y: auto;">
+                        <h3
+                            style="font-size: 0.875rem; font-weight: 700; color: #64748b; margin-bottom: 16px; text-transform: uppercase; letter-spacing: 0.05em;">
+                            Pilih Angka</h3>
 
+                        @for ($i = 1; $i <= 10; $i++)
+                            <button class="nav-btn @if ($i <= $unlockedNumber) unlocked @else locked @endif"
+                                data-number="{{ $i }}" @if ($i > $unlockedNumber) disabled @endif>
+                                @if ($i <= $unlockedNumber)
+                                    {{ $i }}
+                                @else
+                                    {{ $i }} 🔒
+                                @endif
+                            </button>
+                        @endfor
+                    </div>
+                </div>
+
+                <!-- MIDDLE COLUMN: ORANGE TUTORIAL FRAME (col-span-5) -->
+                <div class="col-span-5" style="grid-column: span 1;">
+                    <div class="frame-orange">
+                        <h2>
+                            Tutorial Angka <span id="tutorial-title">{{ $unlockedNumber }}</span>
+                        </h2>
+
+                        <div class="tutorial-placeholder">
+                            <p style="font-size: 1.25rem;">
+                                Animasi Jari akan muncul di sini ✨
+                            </p>
+                        </div>
+
+                        <div class="instruction-text">
+                            <p>
+                                Tekuk jari sesuai arahan untuk membentuk angka target 👆
+                            </p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- RIGHT COLUMN: PURPLE CAMERA FRAME (col-span-5) -->
+                <div class="col-span-5" style="grid-column: span 1;">
+                    <div class="frame-purple">
+                        <div class="camera-indicator">
+                            <p>Jari Terbaca</p>
+                            <div class="detected-number" id="detected-number">0</div>
+                        </div>
+
+                        <div class="camera-container">
+                            <video class="input_video" autoplay muted playsinline></video>
+                            <canvas class="output_canvas" width="640" height="480"></canvas>
+
+                            <!-- Flash Effect -->
                             <div id="flash-effect"
-                                class="absolute inset-0 bg-white opacity-0 pointer-events-none transition-opacity duration-200 z-10">
+                                style="position: absolute; inset: 0; background: white; opacity: 0; transition: opacity 0.2s; pointer-events: none;">
                             </div>
 
+                            <!-- Success Feedback -->
                             <div id="feedback-overlay"
-                                class="absolute inset-0 flex items-center justify-center opacity-0 transition-opacity duration-300 z-20">
-                                <div class="bg-white/90 p-6 rounded-full border-8 border-[#BBCB64] shadow-2xl scale-150">
-                                    <span class="text-6xl">🌟</span>
+                                style="position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; opacity: 0; transition: opacity 0.3s; pointer-events: none; z-index: 20;">
+                                <div
+                                    style="background: rgba(255, 255, 255, 0.9); padding: 24px; border-radius: 50%; border: 8px solid #BBCB64; box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3); transform: scale(1.5);">
+                                    <span style="font-size: 4rem; display: block;">⭐</span>
                                 </div>
                             </div>
-
-                            <div id="camera-off-placeholder"
-                                class="absolute inset-0 flex flex-col items-center justify-center bg-slate-800 text-slate-400 z-0">
-                                <span class="text-6xl mb-4">📷</span>
-                                <p class="font-semibold text-lg">Kamera belum menyala</p>
-                            </div>
                         </div>
 
-                        <div
-                            class="mt-6 flex items-center justify-between bg-slate-50 p-4 rounded-2xl border-2 border-slate-100">
-                            <button id="btn-camera-toggle"
-                                class="btn-3d-orange px-6 py-3 rounded-2xl text-white font-bold flex items-center gap-2">
-                                <span id="cam-icon" class="text-xl">🚫</span>
-                                <span id="cam-text">Nyalakan Kamera</span>
-                            </button>
-
-                            <div class="text-right">
-                                <p class="text-sm font-semibold text-slate-400 uppercase tracking-wider">Jari Terbaca</p>
-                                <p class="text-4xl font-black text-[#BBCB64]" id="user-current-answer">0</p>
-                            </div>
-                        </div>
+                        <button class="try-btn" id="try-btn">
+                            Coba Praktekkan! 📷
+                        </button>
                     </div>
-                </section>
+                </div>
 
-                <section class="flex flex-col gap-6">
-                    <div
-                        class="game-card p-8 border-b-[8px] border-[#38BDF8] text-center flex flex-col items-center justify-center min-h-[250px]">
-                        <span
-                            class="bg-[#38BDF8] text-white px-4 py-1 rounded-full text-sm font-bold uppercase tracking-widest mb-4 inline-block">Instruksi</span>
-                        <h2 id="question-text" class="text-2xl font-bold text-slate-700 mb-2">Tunjukkan Angka</h2>
-                        <div id="target-number" class="text-[6rem] leading-none font-black text-[#38BDF8] drop-shadow-md">
-                            ?
-                        </div>
-                    </div>
+            </div>
 
-                    <div class="game-card p-6 border-b-[8px] border-slate-200 flex-grow flex flex-col">
-                        <h3 class="text-lg font-bold text-slate-700 mb-4 flex items-center gap-2">
-                            <span>📸</span> Koleksi Foto Jarimu
-                        </h3>
-
-                        <div id="gallery-list"
-                            class="flex gap-4 overflow-x-auto pb-4 mb-4 flex-grow items-start min-h-[120px]">
-                            <div id="gallery-placeholder" class="w-full text-center text-slate-400 py-8 font-medium">
-                                Foto angka yang benar akan muncul di sini!
-                            </div>
-                        </div>
-
-                        <a href="{{ route('jarimatika.latihan') }}" id="btn-next-level"
-                            class="hidden btn-3d-green w-full block text-center text-white text-xl font-bold rounded-2xl py-4 mt-auto">
-                            Mulai Mode Latihan ➡️
-                        </a>
-                    </div>
-                </section>
-            </main>
         </div>
 
-        <div id="start-overlay"
-            class="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/80 backdrop-blur-md px-4">
-            <div
-                class="bg-white p-10 rounded-[40px] border-b-[12px] border-[#BBCB64] max-w-lg w-full text-center shadow-2xl relative overflow-hidden">
-                <div class="absolute -top-10 -right-10 w-32 h-32 bg-[#FFE52A] rounded-full opacity-50"></div>
-                <div class="absolute -bottom-10 -left-10 w-24 h-24 bg-[#38BDF8] rounded-full opacity-50"></div>
-
-                <div class="text-[5rem] mb-2 animate-bounce relative z-10">👋</div>
-                <h1 class="text-4xl font-black text-slate-800 mb-4 relative z-10">Halo Teman!</h1>
-                <p class="text-lg text-slate-600 font-medium mb-8 relative z-10">Di mode ini, kita akan belajar bagaimana
-                    bentuk jari untuk angka 1 sampai 10. Sudah siap?</p>
-
-                <button class="start-btn btn-3d-green w-full py-4 text-2xl font-bold text-white rounded-2xl relative z-10">
-                    SIAP, MULAI! 🚀
+        <!-- START OVERLAY -->
+        <div id="start-overlay" class="start-overlay" style="display: flex;">
+            <div class="start-card">
+                <div class="emoji">🚀</div>
+                <h1>Selamat Datang!</h1>
+                <p>
+                    Angka 1 sudah terbuka. Sempurna dulu sebelum membuka angka berikutnya! 🔓
+                </p>
+                <button class="start-btn" onclick="closeStartOverlay()">
+                    MULAI SEKARANG! 🎮
                 </button>
             </div>
         </div>
 
-        <!-- [BARU] Debug Panel untuk Monitoring FPS & Akurasi -->
-        <div class="debug-panel">
-            <div><span class="label">🎬 FPS:</span> <span id="ui-fps" class="value-fps">0</span></div>
-            <div><span class="label">🎯 Akurasi:</span> <span id="ui-acc" class="value-acc">0%</span></div>
-            <div><span class="label">🔢 Deteksi:</span> <span id="ui-det" class="value-det">0</span></div>
-            <div class="mt-2 pt-2 border-t border-white/20">
-                <span class="label">💡 Tip:</span> Buka console untuk lihat log evaluasi
-            </div>
-        </div>
     </div>
 
+    <!-- MediaPipe Libraries -->
     <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js" crossorigin="anonymous"></script>
     <script src="https://cdn.jsdelivr.net/npm/@mediapipe/control_utils/control_utils.js" crossorigin="anonymous"></script>
     <script src="https://cdn.jsdelivr.net/npm/@mediapipe/drawing_utils/drawing_utils.js" crossorigin="anonymous"></script>
     <script src="https://cdn.jsdelivr.net/npm/@mediapipe/hands/hands.js" crossorigin="anonymous"></script>
 
+    <!-- SweetAlert2 -->
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11.10.0/dist/sweetalert2.all.min.js"></script>
+
+    <!-- Core & Game Logic -->
+    <script src="{{ asset('js/jarimatika-core.js') }}"></script>
+    <script src="{{ asset('js/jarimatika-game.js') }}"></script>
+
+    <script>
+        // Pass unlock data to JavaScript
+        window.unlockedNumber = {{ $unlockedNumber }};
+        window.updateProgressUrl = "{{ route('jarimatika.belajar.progress') }}";
+        window.csrfToken = "{{ csrf_token() }}";
+
+        function closeStartOverlay() {
+            const overlay = document.getElementById('start-overlay');
+            overlay.style.opacity = '0';
+            overlay.style.transition = 'opacity 0.4s ease';
+            setTimeout(() => overlay.style.display = 'none', 400);
+        }
+
+        // Update UI based on unlocked number
+        document.addEventListener('DOMContentLoaded', function() {
+            // Update detected number in real-time
+            setInterval(function() {
+                if (window.gameState && window.gameState.detectedNumber !== undefined) {
+                    document.getElementById('detected-number').textContent = window.gameState
+                    .detectedNumber;
+                    document.getElementById('user-current-answer').textContent = window.gameState
+                        .detectedNumber;
+                }
+            }, 150);
+
+            // Navigation button click handlers
+            document.querySelectorAll('.nav-btn.unlocked').forEach(btn => {
+                btn.addEventListener('click', function() {
+                    const number = this.dataset.number;
+                    document.getElementById('tutorial-title').textContent = number;
+                    // Add logic to update tutorial content
+                });
+            });
+
+            // Try button handler
+            document.getElementById('try-btn').addEventListener('click', function() {
+                if (typeof window.startCameraSystem === 'function') {
+                    window.startCameraSystem();
+                }
+            });
+        });
+
+        /**
+         * Call this when user completes a number
+         */
+        async function completeNumber(number) {
+            const response = await fetch(window.updateProgressUrl, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRF-TOKEN': window.csrfToken,
+                },
+                body: JSON.stringify({
+                    completed_number: number,
+                }),
+            });
+
+            const data = await response.json();
+
+            if (data.success) {
+                window.unlockedNumber = data.highest_number_unlocked;
+                document.getElementById('unlocked-display').textContent = data.highest_number_unlocked;
+
+                // Update UI
+                const nextBtn = document.querySelector(`[data-number="${data.highest_number_unlocked}"]`);
+                if (nextBtn) {
+                    nextBtn.classList.remove('locked');
+                    nextBtn.classList.add('unlocked');
+                    nextBtn.removeAttribute('disabled');
+                    nextBtn.innerHTML = data.highest_number_unlocked;
+                }
+
+                Swal.fire({
+                    icon: 'success',
+                    title: 'Angka Terbuka! 🔓',
+                    html: `<h2 style="font-size: 2rem; margin: 20px 0;">Angka ${data.highest_number_unlocked} Terbuka!</h2>`,
+                    confirmButtonColor: '#BBCB64',
+                });
+            } else {
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Tidak Bisa Skip!',
+                    text: data.message,
+                    confirmButtonColor: '#CF0F0F',
+                });
+            }
+        }
+    </script>
+
+    <!-- MediaPipe Libraries -->
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js" crossorigin="anonymous"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/control_utils/control_utils.js" crossorigin="anonymous"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/drawing_utils/drawing_utils.js" crossorigin="anonymous"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/hands/hands.js" crossorigin="anonymous"></script>
+
+    <!-- SweetAlert2 -->
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11.10.0/dist/sweetalert2.all.min.js"></script>
+
+    <!-- Core & Game Logic -->
     <script src="{{ asset('js/jarimatika-core.js') }}"></script>
     <script src="{{ asset('js/jarimatika-game.js') }}"></script>
 
@@ -232,103 +516,53 @@
             const startOverlay = document.getElementById('start-overlay');
             const startBtn = startOverlay.querySelector('.start-btn');
             const userAnswer = document.getElementById('user-current-answer');
-            const galleryPlaceholder = document.getElementById('gallery-placeholder');
-            const galleryList = document.getElementById('gallery-list');
             const feedbackOverlay = document.getElementById('feedback-overlay');
             const btnNextLevel = document.getElementById('btn-next-level');
             const camPlaceholder = document.getElementById('camera-off-placeholder');
             const btnCamToggle = document.getElementById('btn-camera-toggle');
+            const elLessonContext = document.getElementById('lesson-context');
+            const elLessonHint = document.getElementById('lesson-hint');
 
-            // [BARU] Elemen Debug Panel
-            const elUiFps = document.getElementById('ui-fps');
-            const elUiAcc = document.getElementById('ui-acc');
-            const elUiDet = document.getElementById('ui-det');
-
-            // Logic Tutup Overlay Mulai
+            // Close start overlay
             startBtn.addEventListener('click', function() {
                 startOverlay.style.opacity = '0';
                 startOverlay.style.transition = 'opacity 0.4s ease';
                 setTimeout(() => startOverlay.classList.add('hidden'), 400);
 
                 if (typeof speak === 'function') {
-                    speak('Selamat datang! Silakan klik tombol nyalakan kamera.');
+                    speak('Selamat datang di Mode Belajar!');
                 }
             });
 
-            // Sembunyikan placeholder kamera saat tombol kamera di-klik
+            // Hide camera placeholder when toggled
             btnCamToggle.addEventListener('click', function() {
                 if (camPlaceholder) camPlaceholder.style.display = 'none';
             });
 
-            // Fungsi Simulasi Jepret Foto
+            // Snapshot Photo function
             window.snapPhoto = function(numberLabel) {
                 const imageData = typeof window.captureHandSmart === 'function' ? window.captureHandSmart() :
                     null;
                 if (!imageData) return;
 
-                // 1. Efek Flash Terang
+                // Flash effect
                 const elFlash = document.getElementById('flash-effect');
-                elFlash.style.opacity = 0.8;
-                setTimeout(() => elFlash.style.opacity = 0, 300);
+                if (elFlash) {
+                    elFlash.style.opacity = 0.8;
+                    setTimeout(() => elFlash.style.opacity = 0, 300);
+                }
 
-                // 2. Hilangkan text placeholder
-                if (galleryPlaceholder) galleryPlaceholder.style.display = 'none';
-
-                // 3. Buat Kartu Foto Baru
-                const card = document.createElement('div');
-                card.className = 'snapshot-card relative group';
-                card.innerHTML = `
-                <img src="${imageData}" class="snapshot-img">
-                <div class="absolute bottom-1 right-1 bg-[#38BDF8] text-white font-black text-sm w-6 h-6 flex items-center justify-center rounded-full border-2 border-white">
-                    ${numberLabel}
-                </div>
-            `;
-                galleryList.prepend(card);
-
-                // 4. Efek Bintang Besar
+                // Feedback
                 if (feedbackOverlay) {
                     feedbackOverlay.style.opacity = 1;
                     setTimeout(() => feedbackOverlay.style.opacity = 0, 800);
                 }
-
-                // 5. Tampilkan Tombol Lanjut
-                if (btnNextLevel) {
-                    btnNextLevel.classList.remove('hidden');
-                }
             };
 
-            // Loop untuk update UI secara real-time
+            // Real-time UI updates
             setInterval(function() {
                 if (window.gameState) {
-                    // Update angka deteksi
                     userAnswer.textContent = window.gameState.detectedNumber ?? 0;
-
-                    // [BARU] Update Debug Panel - FPS
-                    if (elUiFps && window.gameState.currentFps !== undefined) {
-                        elUiFps.innerText = window.gameState.currentFps;
-                        // Warning visual jika FPS rendah
-                        if (window.gameState.currentFps < 20) {
-                            elUiFps.classList.add('value-low');
-                        } else {
-                            elUiFps.classList.remove('value-low');
-                        }
-                    }
-
-                    // [BARU] Update Debug Panel - Akurasi
-                    if (elUiAcc && typeof window.evaluationData !== 'undefined') {
-                        if (window.evaluationData.totalAttempts > 0) {
-                            const acc = ((window.evaluationData.correctDetections / window.evaluationData
-                                .totalAttempts) * 100).toFixed(1);
-                            elUiAcc.innerText = acc + '%';
-                        } else {
-                            elUiAcc.innerText = '0%';
-                        }
-                    }
-
-                    // [BARU] Update Debug Panel - Deteksi realtime
-                    if (elUiDet) {
-                        elUiDet.innerText = window.gameState.detectedNumber ?? 0;
-                    }
                 }
             }, 150);
         });

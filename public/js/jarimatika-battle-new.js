@@ -302,6 +302,8 @@ function setupPusher() {
     });
 
     channel.bind("OpponentScored", (data) => {
+        // Prevent echo: ignore skor dari diri sendiri
+        if (data.senderId === localPeerId) return;
         // Prevent race condition
         if (isGameOver) return;
 
@@ -668,6 +670,7 @@ async function sendScoreToOpponent(points) {
             body: JSON.stringify({
                 gameId: gameId,
                 points: points,
+                senderId: localPeerId,
                 socket_id: pusherSocketId,
             }),
         });
@@ -896,7 +899,7 @@ async function submitBattleResult(result) {
             },
             body: JSON.stringify({
                 gameId: gameId,
-                result: result,
+                isVictory: result === "win",
                 userScore: userScore,
                 opponentScore: opponentScore,
                 socket_id: pusherSocketId,
@@ -904,7 +907,8 @@ async function submitBattleResult(result) {
         });
         
         if (response.ok) {
-            log("Hasil battle berhasil dikirim ke server", "success");
+            const resData = await response.json();
+            log(resData.message || "Hasil battle berhasil dikirim ke server", "success");
         } else {
             log(`Gagal mengirim hasil: ${response.status}`, "error");
         }

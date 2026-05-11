@@ -17,11 +17,13 @@
             width: 100%;
             height: 100%;
             object-fit: cover;
-            transform: none !important; /* Pastikan tidak ada flip */
+            transform: none !important;
+            /* Pastikan tidak ada flip */
         }
 
         .input_video {
-            transform: scaleX(-1); /* Hanya video yang mirror untuk natural movement */
+            transform: scaleX(-1);
+            /* Hanya video yang mirror untuk natural movement */
         }
 
         /* Game Cards & 3D Buttons */
@@ -71,12 +73,73 @@
         }
 
         @keyframes fadeIn {
-            from { opacity: 0; transform: translateY(10px); }
-            to { opacity: 1; transform: translateY(0); }
+            from {
+                opacity: 0;
+                transform: translateY(10px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        /* COMBO FIRE Animation */
+        #combo-display {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            font-size: 4rem;
+            font-weight: 900;
+            color: #FF6B6B;
+            text-shadow: 0 0 30px rgba(255, 107, 107, 0.8);
+            z-index: 1000;
+            display: none;
+            pointer-events: none;
+            animation: comboFade 1.5s ease-out forwards;
+        }
+
+        @keyframes comboFade {
+            0% {
+                opacity: 1;
+                transform: translate(-50%, -50%) scale(0.5);
+            }
+
+            50% {
+                opacity: 1;
+                transform: translate(-50%, -50%) scale(1.2);
+            }
+
+            100% {
+                opacity: 0;
+                transform: translate(-50%, -50%) scale(1);
+            }
+        }
+
+        /* Combo fade animation for state */
+        .combo-fade {
+            animation: comboFade 1.5s ease-out forwards !important;
+        }
+
+        /* Stars fade-in animation */
+        @keyframes fadeInScale {
+            from {
+                opacity: 0;
+                transform: scale(0);
+            }
+
+            to {
+                opacity: 1;
+                transform: scale(1);
+            }
         }
     </style>
 
     <div class="jarimatika-container py-6 px-4 sm:px-6">
+        <!-- COMBO DISPLAY (hidden by default) -->
+        <div id="combo-display" style="display: none;"></div>
+
         <div class="max-w-[1400px] mx-auto">
             <div
                 class="game-card mb-6 px-6 py-4 flex flex-col md:flex-row md:items-center justify-between gap-4 border-b-[8px] border-[#38BDF8]">
@@ -212,6 +275,9 @@
     <script src="https://cdn.jsdelivr.net/npm/@mediapipe/control_utils/control_utils.js" crossorigin="anonymous"></script>
     <script src="https://cdn.jsdelivr.net/npm/@mediapipe/drawing_utils/drawing_utils.js" crossorigin="anonymous"></script>
     <script src="https://cdn.jsdelivr.net/npm/@mediapipe/hands/hands.js" crossorigin="anonymous"></script>
+
+    <!-- SweetAlert2 for level completion modal -->
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11.10.0/dist/sweetalert2.all.min.js"></script>
 
     <script src="{{ asset('js/jarimatika-core.js') }}"></script>
     <script src="{{ asset('js/jarimatika-latihan.js') }}"></script>

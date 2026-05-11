@@ -15,11 +15,29 @@ class DatabaseSeeder extends Seeder
      */
     public function run(): void
     {
-        // User::factory(10)->create();
+        // Create Admin User
+        User::factory()->create([
+            'name' => 'Admin Jarimatika',
+            'email' => 'admin@jarimatika.com',
+            'password' => bcrypt('admin123456'),
+            'is_admin' => true,
+            'koin' => 10000,
+            'total_xp' => 50000,
+            'level' => 50,
+            'piala' => 100,
+        ]);
+
+        // Create Test User
         User::factory()->create([
             'name' => 'Test User',
             'email' => 'test@example.com',
+            'koin' => 500,
+            'total_xp' => 2000,
+            'level' => 5,
+            'piala' => 10,
         ]);
-        UserSeeder::class; // <-- TAMBAHKAN INI
+
+        $this->call(UserSeeder::class);
+        $this->call(ShopItemSeeder::class);
     }
 }

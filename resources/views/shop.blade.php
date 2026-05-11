@@ -91,32 +91,61 @@
                 <section class="grid gap-6 sm:grid-cols-2 lg:grid-cols-2">
                     @foreach ($items as $item)
                         @php
-                            // Cek apakah user punya cukup koin
-                            $canBuy = $user->koin >= $item['price'];
+                            $canBuy = $user->koin >= $item['price'] && !$item['owned'];
+                            $isOwned = $item['owned'];
+                            $isEquipped = $item['equipped'];
                         @endphp
 
                         <div
-                            class="game-card p-6 border-b-[8px] {{ $canBuy ? 'border-[#BBCB64]' : 'border-slate-300 bg-slate-50' }} flex flex-col text-center relative group">
+                            class="game-card p-6 border-b-[8px] {{ $isOwned ? 'border-[#22C55E]' : ($canBuy ? 'border-[#BBCB64]' : 'border-slate-300 bg-slate-50') }} flex flex-col text-center relative group">
+                            
+                            @if ($isEquipped)
+                                <div class="absolute top-3 right-3 bg-[#22C55E] text-white font-black px-3 py-1 rounded-full text-xs z-10 flex items-center gap-1 animate-pulse">
+                                    ✅ Sedang Dipakai
+                                </div>
+                            @endif
+
+                            @if ($isOwned && !$isEquipped)
+                                <div class="absolute top-3 right-3 bg-[#38BDF8] text-white font-black px-3 py-1 rounded-full text-xs z-10">
+                                    ✓ Dimiliki
+                                </div>
+                            @endif
 
                             <div
-                                class="absolute top-4 right-4 bg-[#FFE52A] text-slate-800 font-black px-4 py-1 rounded-full border-2 border-white shadow-sm z-10 flex items-center gap-1">
+                                class="absolute top-4 left-4 bg-[#FFE52A] text-slate-800 font-black px-4 py-1 rounded-full border-2 border-white shadow-sm z-10 flex items-center gap-1">
                                 <span>💰</span> {{ $item['price'] }}
                             </div>
 
                             <div
                                 class="h-32 flex items-center justify-center text-[5rem] mb-2 transform group-hover:scale-110 transition-transform duration-300 drop-shadow-md">
-                                {{ $item['icon'] }}
+                                {{ $item['image_path'] ?? '🎁' }}
                             </div>
 
                             <h2 class="text-2xl font-black text-slate-800 mb-2">{{ $item['name'] }}</h2>
                             <p class="text-sm text-slate-500 font-medium mb-6 flex-grow leading-relaxed">
                                 {{ $item['description'] }}</p>
 
-                            <button type="button"
-                                class="w-full py-4 text-lg font-black rounded-2xl tracking-wide {{ $canBuy ? 'btn-3d-green text-white' : 'btn-3d-disabled' }}"
-                                {{ $canBuy ? '' : 'disabled' }}>
-                                {{ $canBuy ? 'Beli Item' : 'Koin Tidak Cukup' }}
-                            </button>
+                            @if (!$isOwned)
+                                <!-- Tombol Beli -->
+                                <button type="button" class="shop-buy-btn w-full py-4 text-lg font-black rounded-2xl tracking-wide {{ $canBuy ? 'btn-3d-green text-white' : 'btn-3d-disabled' }}"
+                                    data-item-id="{{ $item['id'] }}"
+                                    {{ $canBuy ? '' : 'disabled' }}>
+                                    {{ $user->koin >= $item['price'] ? 'Beli Item' : 'Koin Tidak Cukup' }}
+                                </button>
+                            @else
+                                @if ($isEquipped)
+                                    <!-- Tombol Sedang Dipakai (Disabled) -->
+                                    <button type="button" class="w-full py-4 text-lg font-black rounded-2xl tracking-wide btn-3d-disabled" disabled>
+                                        ✓ Sedang Dipakai
+                                    </button>
+                                @else
+                                    <!-- Tombol Pakai -->
+                                    <button type="button" class="shop-equip-btn w-full py-4 text-lg font-black rounded-2xl tracking-wide btn-3d-green text-white"
+                                        data-item-id="{{ $item['id'] }}">
+                                        Pakai Item
+                                    </button>
+                                @endif
+                            @endif
 
                         </div>
                     @endforeach
@@ -125,4 +154,87 @@
             </main>
         </div>
     </div>
+
+    <script>
+        const csrfToken = document.querySelector('meta[name="csrf-token"]')?.content;
+        const userKoinDisplay = document.querySelector('[data-user-koin]');
+
+        // Event listener untuk tombol Beli
+        document.querySelectorAll('.shop-buy-btn').forEach(btn => {
+            btn.addEventListener('click', async (e) => {
+                e.preventDefault();
+                const itemId = btn.dataset.itemId;
+                
+                btn.disabled = true;
+                const originalText = btn.textContent;
+                btn.textContent = '⏳ Memproses...';
+
+                try {
+                    const response = await fetch(`/shop/buy/${itemId}`, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'X-CSRF-TOKEN': csrfToken,
+                        },
+                    });
+
+                    const data = await response.json();
+
+                    if (response.ok) {
+                        alert('✅ ' + data.message);
+                        // Reload halaman untuk update UI
+                        location.reload();
+                    } else {
+                        alert('❌ ' + data.error);
+                        btn.disabled = false;
+                        btn.textContent = originalText;
+                    }
+                } catch (error) {
+                    console.error('Error:', error);
+                    alert('❌ Terjadi kesalahan. Silakan coba lagi.');
+                    btn.disabled = false;
+                    btn.textContent = originalText;
+                }
+            });
+        });
+
+        // Event listener untuk tombol Pakai
+        document.querySelectorAll('.shop-equip-btn').forEach(btn => {
+            btn.addEventListener('click', async (e) => {
+                e.preventDefault();
+                const itemId = btn.dataset.itemId;
+                
+                btn.disabled = true;
+                const originalText = btn.textContent;
+                btn.textContent = '⏳ Memproses...';
+
+                try {
+                    const response = await fetch(`/shop/equip/${itemId}`, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'X-CSRF-TOKEN': csrfToken,
+                        },
+                    });
+
+                    const data = await response.json();
+
+                    if (response.ok) {
+                        alert('✅ ' + data.message);
+                        // Reload halaman untuk update UI
+                        location.reload();
+                    } else {
+                        alert('❌ ' + data.error);
+                        btn.disabled = false;
+                        btn.textContent = originalText;
+                    }
+                } catch (error) {
+                    console.error('Error:', error);
+                    alert('❌ Terjadi kesalahan. Silakan coba lagi.');
+                    btn.disabled = false;
+                    btn.textContent = originalText;
+                }
+            });
+        });
+    </script>
 @endsection

@@ -15,7 +15,7 @@ class RewardControllerTest extends TestCase
     public function setUp(): void
     {
         parent::setUp();
-        
+
         // Create test user
         $this->user = User::factory()->create([
             'koin' => 100,
@@ -131,7 +131,6 @@ class RewardControllerTest extends TestCase
         $this->assertEquals(500, $this->user->total_xp);
         $this->assertEquals(2, $this->user->level); // 500/500 = level 2
         // Level 1 → Level 2: +3 bonus piala
-        $this->assertEquals(40, $this->user->piala); // 10 + (5*5) + 3 = 38... wait let me recalculate
         // Initial: 10 piala
         // 5 victories: 5*5 = 25 piala
         // Level up bonus: 3 piala
@@ -201,9 +200,7 @@ class RewardControllerTest extends TestCase
         $this->user->refresh();
         $this->assertEquals(1000, $this->user->total_xp);
         $this->assertEquals(3, $this->user->level); // 1000/500 + 1 = 3
-        // Bonus piala from level 1→2→3: 3 piala (for level increase of 2)
-        $this->assertEquals(16, $this->user->piala); // 10 + 5 (victory) + (3*2) = 10 + 5 + 6 = 21... wait
-        // Let me recalculate:
+        // Bonus piala from level 1→2→3: 3 piala per level (for level increase of 2)
         // Initial piala: 10
         // Victory piala: +5
         // Level up bonus: (3-1) * 3 = 2 * 3 = 6

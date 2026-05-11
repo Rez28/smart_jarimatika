@@ -13,6 +13,7 @@ class BattleController extends Controller
         $data = $request->validate([
             'gameId' => 'required|string|max:100',
             'points' => 'required|integer|min:1|max:10',
+            'senderId' => 'nullable|string',
             'socket_id' => 'nullable|string',
         ]);
 
@@ -31,6 +32,7 @@ class BattleController extends Controller
         $eventData = [
             'points' => $data['points'],
             'source' => 'opponent',
+            'senderId' => $data['senderId'] ?? null,
         ];
 
         $body = json_encode([

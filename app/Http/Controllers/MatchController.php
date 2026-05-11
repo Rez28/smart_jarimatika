@@ -8,6 +8,7 @@ use App\Models\MatchmakingWaiting;
 use App\Models\MatchmakingGame;
 use Illuminate\Http\Request;
 use Illuminate\Support\Str;
+use Illuminate\Support\Facades\Cache;
 
 class MatchController extends Controller
 {
@@ -64,6 +65,7 @@ class MatchController extends Controller
             ]);
         }
 
+        // Tambahkan user ke waiting queue
         MatchmakingWaiting::create([
             'user_id' => $user->id,
             'user_name' => $user->name,

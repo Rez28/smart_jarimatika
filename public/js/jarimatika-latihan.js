@@ -4,7 +4,7 @@
  */
 
 const CONFIG = {
-    stepDelay: 4000, // Waktu jeda untuk user mempraktekkan (4 detik)
+    stepDelay: 1500, // Reduced from 4000ms for faster gameplay
     questionsPerLevel: 5,
 };
 
@@ -18,6 +18,12 @@ let isCheckingAnswer = false;
 let hasLessonStarted = false; // Flag Penanda Game Dimulai
 let isCameraActive = false; // Flag Status Kamera
 let wrongTimer = null; // Timer untuk toleransi jawaban salah
+
+// GAMIFICATION STATE
+let comboCount = 0; // Combo counter
+let levelCorrectAnswers = 0; // Track correct answers this level
+let questionTimings = []; // Track time per question for star calculation
+let questionStartTime = 0; // Start time of current question
 
 // DOM ELEMENTS
 const uiLevel = document.getElementById("ui-level");
@@ -47,7 +53,43 @@ const txtCamIcon = document.getElementById("cam-icon");
 const sfxCorrect = new Audio("/sounds/correct.mp3");
 const sfxWrong = new Audio("/sounds/wrong.mp3");
 
+// --- GAMIFICATION ELEMENTS ---
+const elComboDisplay = document.getElementById("combo-display");
+
 // --- HELPER FUNCTIONS ---
+
+// Show COMBO FIRE animation
+function showCombo() {
+    if (!elComboDisplay) return;
+    
+    elComboDisplay.innerHTML = '🔥 COMBO FIRE! 🔥';
+    elComboDisplay.style.display = 'block';
+    elComboDisplay.classList.remove('combo-fade');
+    void elComboDisplay.offsetWidth; // Trigger reflow
+    elComboDisplay.classList.add('combo-fade');
+    
+    // Speak combo announcement
+    speak("Kombo tiga beruntun! Hebat sekali!", () => {});
+}
+
+// Calculate stars based on average response time
+function calculateStars(timings) {
+    if (timings.length === 0) return 3;
+    
+    const avgTime = timings.reduce((a, b) => a + b, 0) / timings.length;
+    
+    // 1-3 sec avg = 3 stars, 3-6 sec = 2 stars, >6 sec = 1 star
+    if (avgTime < 3000) return 3;
+    if (avgTime < 6000) return 2;
+    return 1;
+}
+
+// Get star display (filled/empty stars)
+function getStarDisplay(count) {
+    let stars = '⭐'.repeat(count);
+    let empty = '☆'.repeat(3 - count);
+    return stars + empty;
+}
 
 function speak(text, callback) {
     if ("speechSynthesis" in window) {
@@ -124,6 +166,9 @@ function getLevelName(lv) {
 function generateSequence() {
     sequenceQueue = [];
     let currentVal = 0;
+    
+    // Track question start time
+    questionStartTime = Date.now();
 
     // Update UI Header
     uiLevel.innerText = currentLevel;
@@ -292,6 +337,10 @@ function snapAndFinish(isCorrect) {
     clearTimeout(wrongTimer);
     wrongTimer = null;
 
+    // Record question timing
+    const questionDuration = Date.now() - questionStartTime;
+    questionTimings.push(questionDuration);
+
     // --- FITUR PHOTOBOOTH (Hanya jika benar) ---
     if (isCorrect) {
         // Panggil fungsi crop smart dari core.js
@@ -328,6 +377,15 @@ function snapAndFinish(isCorrect) {
     if (isCorrect) {
         // --- JAWABAN BENAR ---
         currentScore += 20;
+        levelCorrectAnswers++; // Track for level stats
+        comboCount++; // Increment combo
+        
+        // COMBO CHECK: Show animation on 3 consecutive
+        if (comboCount === 3) {
+            showCombo();
+            comboCount = 0; // Reset for next combo
+        }
+        
         sendGamificationReward(10, 100, 10);
         sfxCorrect.play().catch(() => {});
         elResultIcon.innerText = "✅";
@@ -340,6 +398,8 @@ function snapAndFinish(isCorrect) {
         speak(`Benar! Jawabannya ${finalAnswerKey}.`);
     } else {
         // --- JAWABAN SALAH ---
+        comboCount = 0; // Reset combo on wrong answer
+        
         sfxWrong.play().catch(() => {});
         elResultIcon.innerText = "❌";
 
@@ -353,7 +413,7 @@ function snapAndFinish(isCorrect) {
 
     elOverlay.style.opacity = "1";
 
-    // Lanjut ke soal berikutnya setelah 4 detik
+    // Lanjut ke soal berikutnya setelah 2.5 detik (reduced from 4s)
     setTimeout(() => {
         if (questionIndex >= CONFIG.questionsPerLevel) {
             finishLevel();
@@ -361,34 +421,79 @@ function snapAndFinish(isCorrect) {
             questionIndex++;
             generateSequence();
         }
-    }, 4000);
+    }, 2500);
 }
 
 // ==========================================
 // 4. SISTEM LEVELING
 // ==========================================
 function finishLevel() {
-    elModal.classList.remove("hidden");
-    document.getElementById("final-level").innerText =
-        currentLevel < 5 ? currentLevel + 1 : currentLevel;
-    document.getElementById("final-xp").innerText = "+50";
-    document.getElementById("final-coins").innerText = "+10";
-
+    // Calculate stars based on question timings
+    const stars = calculateStars(questionTimings);
+    const starDisplay = getStarDisplay(stars);
+    
     let praise = currentScore >= 80 ? "Hebat Sekali!" : "Latihan Lagi Ya!";
-    speak(`Selesai Level ${currentLevel}. ${praise}`);
+    speak(`Selesai Level ${currentLevel}. ${praise}. Kamu mendapat ${stars} bintang.`);
 
-    btnDashboard.onclick = () => {
-        window.location.href = "/dashboard";
-    };
+    // Show SweetAlert2 if available, otherwise fallback to modal
+    if (typeof Swal !== 'undefined') {
+        const starsHtml = '⭐'.repeat(stars) + '☆'.repeat(3 - stars);
+        
+        Swal.fire({
+            title: 'Level Selesai! 🏆',
+            html: `
+                <div style="font-size: 3rem; margin: 20px 0;">
+                    ${starsHtml}
+                </div>
+                <p style="font-size: 1.3rem; color: #F79A19; font-weight: bold;">Skor: ${currentScore}</p>
+                <p style="font-size: 1rem; color: #38BDF8; margin-top: 10px;">Jawaban Benar: ${levelCorrectAnswers}/5</p>
+            `,
+            icon: 'success',
+            confirmButtonText: currentLevel >= 5 ? 'Selesai 🎉' : 'Lanjut Level ➡️',
+            confirmButtonColor: '#BBCB64',
+            backdrop: 'rgba(0,0,0,0.4)',
+            allowOutsideClick: false,
+            didOpen: () => {
+                // Animate stars one by one
+                const starsContainer = Swal.getHtmlContainer().querySelector('div:first-child');
+                const starElements = starsContainer.innerHTML.split('').map((char, i) => {
+                    const span = document.createElement('span');
+                    span.textContent = char;
+                    span.style.opacity = '0';
+                    span.style.animation = `fadeInScale 0.6s ease ${i * 0.15}s forwards`;
+                    return span;
+                });
+                starsContainer.innerHTML = '';
+                starElements.forEach(s => starsContainer.appendChild(s));
+            }
+        }).then(() => {
+            if (currentLevel >= 5) {
+                window.location.href = "/dashboard";
+            } else {
+                nextLevelAction();
+            }
+        });
+    } else {
+        // Fallback to original modal
+        elModal.classList.remove("hidden");
+        document.getElementById("final-level").innerText =
+            currentLevel < 5 ? currentLevel + 1 : currentLevel;
+        document.getElementById("final-xp").innerText = "+50";
+        document.getElementById("final-coins").innerText = "+10";
 
-    if (currentLevel >= 5) {
-        btnNextLevel.innerText = "Tamat (Menu Utama)";
-        btnNextLevel.onclick = () => {
+        btnDashboard.onclick = () => {
             window.location.href = "/dashboard";
         };
-    } else {
-        btnNextLevel.innerText = "Lanjut Level " + (currentLevel + 1);
-        btnNextLevel.onclick = nextLevelAction;
+
+        if (currentLevel >= 5) {
+            btnNextLevel.innerText = "Tamat (Menu Utama)";
+            btnNextLevel.onclick = () => {
+                window.location.href = "/dashboard";
+            };
+        } else {
+            btnNextLevel.innerText = "Lanjut Level " + (currentLevel + 1);
+            btnNextLevel.onclick = nextLevelAction;
+        }
     }
 }
 
@@ -409,6 +514,9 @@ function restartLevel() {
 function restartGameParams() {
     questionIndex = 1;
     currentScore = 0;
+    comboCount = 0;
+    levelCorrectAnswers = 0;
+    questionTimings = []; // Reset timing array
     uiProgressBar.style.width = "0%";
     if (uiLevelDesc) uiLevelDesc.innerText = getLevelName(currentLevel);
 }

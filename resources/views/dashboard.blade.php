@@ -87,14 +87,23 @@
                                 👋</h1>
 
                             <div class="bg-slate-50 p-4 rounded-2xl border-2 border-slate-100">
+                                @php
+                                    $userLevel = auth()->user()->level ?? 1;
+                                    $userTotalXp = auth()->user()->total_xp ?? 0;
+                                    $maxXpForLevel = $userLevel * 500;
+                                    $xpProgress = min(100, ($userTotalXp / $maxXpForLevel) * 100);
+                                    $xpNeeded = max(0, $maxXpForLevel - $userTotalXp);
+                                @endphp
                                 <div class="flex justify-between items-end mb-2">
                                     <span class="font-bold text-slate-600">Menuju Level
-                                        {{ (auth()->user()->level ?? 1) + 1 }}</span>
-                                    <span class="text-sm font-bold text-[#BBCB64]">Kurang 240 XP</span>
+                                        {{ $userLevel + 1 }}</span>
+                                    <span class="text-sm font-bold text-[#BBCB64]">Kurang {{ intval($xpNeeded) }}
+                                        XP</span>
                                 </div>
                                 <div
                                     class="h-6 bg-slate-200 rounded-full border-2 border-slate-300 overflow-hidden relative">
-                                    <div class="absolute top-0 left-0 h-full bg-[#BBCB64] w-[65%] rounded-full"></div>
+                                    <div class="absolute top-0 left-0 h-full bg-[#BBCB64] rounded-full transition-all duration-500"
+                                        style="width: {{ $xpProgress }}%"></div>
                                 </div>
                             </div>
                         </div>
@@ -105,18 +114,25 @@
                     <h2
                         class="text-slate-500 font-bold uppercase tracking-widest text-sm mb-4 border-b-2 border-slate-200 pb-2">
                         🎮 Pilih Mode Permainan</h2>
-                    <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                    <div class="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-4 gap-4">
 
                         <a href="{{ route('jarimatika.belajar') }}" class="mode-btn mode-belajar group">
                             <div class="text-5xl mb-4 group-hover:scale-110 transition-transform">📚</div>
-                            <h3 class="text-2xl font-black text-white drop-shadow-sm">Belajar</h3>
-                            <p class="text-sky-100 font-medium text-sm mt-2 px-2">Kenali bentuk jari angka 1-10</p>
+                            <h3 class="text-xl font-black text-white drop-shadow-sm">Belajar</h3>
+                            <p class="text-sky-100 font-medium text-xs mt-1 px-2">Kenali bentuk jari</p>
                         </a>
 
                         <a href="{{ route('jarimatika.latihan') }}" class="mode-btn mode-latihan group">
                             <div class="text-5xl mb-4 group-hover:scale-110 transition-transform">🎯</div>
-                            <h3 class="text-2xl font-black text-white drop-shadow-sm">Latihan</h3>
-                            <p class="text-lime-100 font-medium text-sm mt-2 px-2">Jawab soal & kumpulkan XP</p>
+                            <h3 class="text-xl font-black text-white drop-shadow-sm">Latihan</h3>
+                            <p class="text-lime-100 font-medium text-xs mt-1 px-2">Kumpulkan XP</p>
+                        </a>
+
+                        <a href="{{ route('jarimatika.tebak') }}" class="mode-btn group"
+                            style="background-color: #8B5CF6; border-bottom: 8px solid #6d28d9;">
+                            <div class="text-5xl mb-4 group-hover:scale-110 transition-transform">🧠</div>
+                            <h3 class="text-xl font-black text-white drop-shadow-sm">Tebak Jari</h3>
+                            <p class="text-purple-100 font-medium text-xs mt-1 px-2">Single Player (Tanpa Kamera)</p>
                         </a>
 
                         @php
@@ -128,24 +144,23 @@
                             <a href="{{ route('jarimatika.match') }}"
                                 class="mode-btn mode-battle group relative overflow-hidden hover:shadow-lg transition-all">
                                 <div
-                                    class="absolute top-4 right-[-30px] bg-red-600 text-white text-xs font-black uppercase tracking-wider py-1 px-10 rotate-45 shadow-md">
+                                    class="absolute top-2 right-[-20px] bg-red-600 text-white text-xs font-black uppercase tracking-wider py-1 px-8 rotate-45 shadow-md">
                                     HOT!</div>
 
                                 <div class="text-5xl mb-4 group-hover:scale-110 transition-transform">⚔️</div>
-                                <h3 class="text-2xl font-black text-white drop-shadow-sm">Battle</h3>
-                                <p class="text-orange-100 font-medium text-sm mt-2 px-2">Lawan temanmu 1 vs 1!</p>
+                                <h3 class="text-xl font-black text-white drop-shadow-sm">Battle</h3>
+                                <p class="text-orange-100 font-medium text-xs mt-1 px-2">1 vs 1 Matchmaking</p>
                             </a>
                         @else
                             <button disabled
                                 class="mode-btn bg-gray-400 cursor-not-allowed opacity-60 relative overflow-hidden transform hover:scale-100">
-                                <div class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 text-5xl">🔒
+                                <div class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 text-3xl">🔒
                                 </div>
 
                                 <div class="flex flex-col items-center justify-center h-full">
                                     <div class="text-3xl mb-2">⚔️</div>
-                                    <h3 class="text-lg font-black text-white drop-shadow-sm">Battle</h3>
-                                    <p class="text-gray-100 font-bold text-sm mt-2 px-2">🔓 Terbuka di Level 5</p>
-                                    <p class="text-gray-200 font-semibold text-xs mt-1">Level {{ $userLevel }}/5</p>
+                                    <h3 class="text-sm font-black text-white drop-shadow-sm">Battle</h3>
+                                    <p class="text-gray-100 font-bold text-xs mt-1 px-1">Terbuka Level 5</p>
                                 </div>
                             </button>
                         @endif
@@ -209,13 +224,14 @@
                         <span>🏆</span> Papan Peringkat
                     </a>
 
-                    <a href="#"
-                        class="bg-white border-b-[6px] border-slate-300 w-full block text-center py-4 rounded-2xl text-slate-600 font-bold text-lg flex justify-center items-center gap-2 transition hover:bg-slate-50 active:border-b-0 active:translate-y-[6px]">
-                        <span>🛒</span> Toko Avatar (Segera)
+                    <a href="{{ route('shop') }}"
+                        class="btn-3d-yellow w-full block text-center py-4 rounded-2xl text-slate-800 font-bold text-lg flex justify-center items-center gap-2 transition hover:shadow-lg active:border-b-0 active:translate-y-[6px]">
+                        <span>🛒</span> Toko Avatar
                     </a>
                 </div>
 
             </div>
         </div>
     </div>
+
 </x-app-layout>

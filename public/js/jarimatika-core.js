@@ -241,11 +241,31 @@ async function processVideoFrame() {
     if (isTracking) trackingLoopId = requestAnimationFrame(processVideoFrame);
 }
 
-window.startCameraSystem = function () {
+window.startCameraSystem = async function () {
     console.log("System: MediaPipe Tracking Diaktifkan");
-    if (!isTracking) {
+    if (isTracking) return;
+
+    try {
+        // PERBAIKAN BUG HP: Jangan minta izin kamera lagi jika WebRTC sudah menyalakannya!
+        if (!videoElement.srcObject) {
+            const stream = await navigator.mediaDevices.getUserMedia({
+                video: { facingMode: "user", width: { ideal: 1280 }, height: { ideal: 720 } },
+                audio: false,
+            });
+            videoElement.srcObject = stream;
+        }
+
+        // Pastikan video berjalan sebelum diproses
+        if (videoElement.paused) {
+            await videoElement.play().catch(err => console.error("Play error:", err));
+        }
+
         isTracking = true;
-        processVideoFrame(); 
+        processVideoFrame();
+        console.log("System: Camera stream initialized successfully!");
+    } catch (error) {
+        console.error("Camera access error:", error);
+        alert("Permintaan akses kamera ditolak atau tidak tersedia. Pastikan browser memiliki izin.");
     }
 };
 

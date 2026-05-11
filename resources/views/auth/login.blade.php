@@ -2,123 +2,433 @@
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Fredoka:wght@400;500;600;700;900&display=swap');
 
-        /* Memaksa background body/layout berubah menjadi tema game kita */
-        body {
+        * {
             font-family: 'Fredoka', sans-serif !important;
-            background-color: #FFFBEB !important;
-            background-image: radial-gradient(#38BDF8 1.5px, transparent 1.5px) !important;
-            background-size: 30px 30px !important;
         }
 
-        /* Kartu Login 3D */
-        .login-card {
-            background-color: white;
-            border-radius: 40px;
-            border-bottom: 12px solid #F79A19;
-            box-shadow: 0 15px 35px rgba(0, 0, 0, 0.08);
+        body {
+            background: linear-gradient(135deg, #FFFBEB 0%, #F3E8FF 100%);
+            min-height: 100vh;
         }
 
-        /* Input Form Bergaya Game */
-        .game-input {
-            border: 4px solid #e2e8f0;
+        /* ==================== SPLIT SCREEN CONTAINER ==================== */
+        .split-container {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 0;
+            min-height: 100vh;
+            align-items: stretch;
+        }
+
+        @media (max-width: 768px) {
+            .split-container {
+                grid-template-columns: 1fr;
+                gap: 0;
+                min-height: auto;
+            }
+        }
+
+        /* ==================== LEFT SIDE: MASCOT & MOTIVATION ==================== */
+        .mascot-section {
+            background: linear-gradient(135deg, #38BDF8 0%, #0284C7 50%, #10B981 100%);
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            padding: 2rem;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .mascot-section::before {
+            content: '';
+            position: absolute;
+            top: -50%;
+            right: -50%;
+            width: 400px;
+            height: 400px;
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 50%;
+        }
+
+        .mascot-section::after {
+            content: '';
+            position: absolute;
+            bottom: -30%;
+            left: -30%;
+            width: 300px;
+            height: 300px;
+            background: rgba(255, 255, 255, 0.08);
+            border-radius: 50%;
+        }
+
+        .mascot-content {
+            position: relative;
+            z-index: 10;
+            text-align: center;
+            color: white;
+        }
+
+        .mascot-emoji {
+            font-size: 5rem;
+            margin-bottom: 1rem;
+            display: block;
+            animation: float 3s ease-in-out infinite;
+        }
+
+        @keyframes float {
+
+            0%,
+            100% {
+                transform: translateY(0px);
+            }
+
+            50% {
+                transform: translateY(-20px);
+            }
+        }
+
+        .mascot-title {
+            font-size: 2.5rem;
+            font-weight: 900;
+            margin-bottom: 1rem;
+            letter-spacing: 1px;
+        }
+
+        .mascot-quotes {
+            font-size: 1.25rem;
+            font-weight: 600;
+            line-height: 1.6;
+            margin-bottom: 2rem;
+            text-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+        }
+
+        .motivation-badge {
+            background: rgba(255, 255, 255, 0.2);
+            border: 3px solid rgba(255, 255, 255, 0.5);
             border-radius: 20px;
             padding: 1rem 1.5rem;
+            font-weight: 700;
+            backdrop-filter: blur(10px);
+            display: inline-block;
+        }
+
+        /* ==================== RIGHT SIDE: LOGIN FORM ==================== */
+        .form-section {
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            padding: 2rem;
+            background-color: white;
+        }
+
+        @media (max-width: 768px) {
+            .form-section {
+                padding: 1.5rem;
+            }
+
+            .mascot-section {
+                padding: 1.5rem;
+                min-height: 300px;
+            }
+
+            .mascot-emoji {
+                font-size: 3rem;
+            }
+
+            .mascot-title {
+                font-size: 1.5rem;
+            }
+
+            .mascot-quotes {
+                font-size: 1rem;
+            }
+        }
+
+        .login-card {
+            width: 100%;
+            max-width: 420px;
+        }
+
+        .login-header {
+            text-align: center;
+            margin-bottom: 2rem;
+        }
+
+        .brand-badge {
+            background: linear-gradient(135deg, #FFE52A 0%, #F79A19 100%);
+            color: #1e293b;
+            padding: 0.5rem 1.5rem;
+            border-radius: 20px;
+            font-size: 0.75rem;
+            font-weight: 900;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            display: inline-block;
+            margin-bottom: 1rem;
+            box-shadow: 0 6px 15px rgba(255, 165, 0, 0.2);
+        }
+
+        .login-title {
+            font-size: 2.2rem;
+            font-weight: 900;
+            color: #1e293b;
+            margin-bottom: 0.5rem;
+            letter-spacing: -0.5px;
+        }
+
+        .login-subtitle {
+            font-size: 1rem;
+            color: #64748b;
+            font-weight: 600;
+            margin-bottom: 2rem;
+        }
+
+        /* ==================== CHUNKY INPUT FIELDS ==================== */
+        .input-wrapper {
+            margin-bottom: 1.5rem;
+        }
+
+        .input-label {
+            display: block;
+            color: #334155;
+            font-weight: 700;
+            margin-bottom: 0.75rem;
+            font-size: 0.95rem;
+            letter-spacing: 0.5px;
+        }
+
+        .chunky-input {
+            width: 100%;
+            padding: 1rem 1.75rem;
+            border: 4px solid #e2e8f0;
+            border-radius: 24px;
+            font-size: 1rem;
             font-weight: 600;
             color: #1e293b;
-            width: 100%;
-            transition: all 0.2s ease;
+            background-color: #f8fafc;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
         }
 
-        .game-input:focus {
-            border-color: #38BDF8;
-            box-shadow: 0 0 0 4px rgba(56, 189, 248, 0.2);
+        .chunky-input::placeholder {
+            color: #cbd5e1;
+        }
+
+        .chunky-input:focus {
             outline: none;
+            border-color: #38BDF8;
+            background-color: #f0f9ff;
+            box-shadow: 0 0 0 6px rgba(56, 189, 248, 0.15), 0 4px 12px rgba(0, 0, 0, 0.08);
+            transform: translateY(-2px);
         }
 
-        /* Tombol 3D */
-        .btn-3d-green {
-            background-color: #BBCB64;
-            border-bottom: 8px solid #8fa040;
-            border-radius: 24px;
+        .chunky-input:hover:not(:focus) {
+            border-color: #cbd5e1;
+            box-shadow: 0 6px 16px rgba(0, 0, 0, 0.08);
+        }
+
+        /* ==================== SUBMIT BUTTON WITH BOUNCE ==================== */
+        .btn-adventure {
+            width: 100%;
+            padding: 1.25rem;
+            background: linear-gradient(135deg, #BBCB64 0%, #8fa040 100%);
             color: white;
-            transition: all 0.15s ease;
+            border: 4px solid #8fa040;
+            border-radius: 24px;
+            font-size: 1.1rem;
+            font-weight: 900;
+            text-transform: uppercase;
+            letter-spacing: 1.5px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.15);
+            margin-top: 0.5rem;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 0.75rem;
         }
 
-        .btn-3d-green:active {
-            border-bottom-width: 0px;
-            transform: translateY(8px);
+        .btn-adventure:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 15px 35px rgba(0, 0, 0, 0.2);
+            animation: bounce 0.6s ease;
+        }
+
+        @keyframes bounce {
+
+            0%,
+            100% {
+                transform: translateY(-4px);
+            }
+
+            50% {
+                transform: translateY(-10px);
+            }
+        }
+
+        .btn-adventure:active {
+            transform: translateY(0px);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+        }
+
+        /* ==================== REMEMBER & FORGOT PASSWORD ==================== */
+        .remember-section {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin: 1.5rem 0;
+            font-size: 0.95rem;
+        }
+
+        .checkbox-wrapper {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .chunky-checkbox {
+            width: 24px;
+            height: 24px;
+            cursor: pointer;
+            accent-color: #38BDF8;
+        }
+
+        .forgot-link {
+            color: #F79A19;
+            font-weight: 700;
+            text-decoration: none;
+            transition: all 0.3s ease;
+        }
+
+        .forgot-link:hover {
+            color: #EA580C;
+            text-decoration: underline;
+        }
+
+        /* ==================== REGISTER LINK ==================== */
+        .register-prompt {
+            background: linear-gradient(135deg, #F0F9FF 0%, #F0FDF4 100%);
+            border: 3px solid #e0e7ff;
+            border-radius: 20px;
+            padding: 1.5rem;
+            text-align: center;
+            margin-top: 2rem;
+        }
+
+        .register-text {
+            font-weight: 600;
+            color: #475569;
+            margin-bottom: 0.75rem;
+        }
+
+        .register-link {
+            color: #38BDF8;
+            font-weight: 900;
+            text-decoration: none;
+            font-size: 1.05rem;
+            transition: all 0.3s ease;
+        }
+
+        .register-link:hover {
+            color: #0284C7;
+            text-decoration: underline;
+            text-decoration-thickness: 3px;
+            text-underline-offset: 6px;
+        }
+
+        /* ==================== ERROR MESSAGES ==================== */
+        .error-message {
+            color: #DC2626;
+            font-weight: 700;
+            font-size: 0.9rem;
+            margin-top: 0.5rem;
+            padding: 0.75rem;
+            background-color: #FEE2E2;
+            border-radius: 12px;
+            border-left: 4px solid #DC2626;
         }
     </style>
 
-    <div class="flex flex-col items-center justify-center min-h-screen px-4 pb-12 pt-6">
-
-        <div class="text-[6rem] mb-[-40px] z-10 animate-bounce relative drop-shadow-md">👋</div>
-
-        <div class="login-card w-full max-w-md px-8 py-10 relative z-0">
-
-            <div class="text-center mb-8 pt-4">
-                <span
-                    class="bg-[#FFE52A] text-slate-800 px-4 py-1 rounded-full text-xs font-black uppercase tracking-widest border-2 border-white shadow-sm">
-                    Smart Jarimatika
-                </span>
-                <h1 class="mt-4 text-3xl font-black text-slate-800">Masuk & Bermain!</h1>
-                <p class="mt-2 text-slate-500 font-medium">Ayo kumpulkan XP dan Koinmu hari ini.</p>
+    <div class="split-container">
+        <!-- LEFT SIDE: MASCOT & MOTIVATION -->
+        <div class="mascot-section hidden md:flex">
+            <div class="mascot-content">
+                <span class="mascot-emoji">✌️</span>
+                <h2 class="mascot-title">Jari Matika</h2>
+                <p class="mascot-quotes">
+                    "Setiap jari adalah alat hitung yang ajaib!<br>
+                    Mari bermain sambil belajar matematika."
+                </p>
+                <div class="motivation-badge">
+                    🎯 Kalahkan pemain lain & Naik Level!
+                </div>
             </div>
+        </div>
 
-            <x-auth-session-status class="mb-4" :status="session('status')" />
-
-            <form method="POST" action="{{ route('login') }}" class="space-y-6">
-                @csrf
-
-                <div>
-                    <label for="email" class="block text-slate-600 font-bold ml-2 mb-2">Email Pemain</label>
-                    <input id="email" type="email" name="email" value="{{ old('email') }}" required autofocus
-                        autocomplete="username" class="game-input" placeholder="Masukkan emailmu...">
-                    <x-input-error :messages="$errors->get('email')" class="mt-2 text-red-500 font-bold" />
+        <!-- RIGHT SIDE: LOGIN FORM -->
+        <div class="form-section">
+            <div class="login-card">
+                <!-- Header -->
+                <div class="login-header">
+                    <div class="brand-badge">⚡ Smart Jarimatika</div>
+                    <h1 class="login-title">Masuk & Bermain!</h1>
+                    <p class="login-subtitle">Kumpulkan XP, Koin, dan Naik ke Level Tertinggi</p>
                 </div>
 
-                <div>
-                    <label for="password" class="block text-slate-600 font-bold ml-2 mb-2">Kata Sandi</label>
-                    <input id="password" type="password" name="password" required autocomplete="current-password"
-                        class="game-input" placeholder="Rahasia!">
-                    <x-input-error :messages="$errors->get('password')" class="mt-2 text-red-500 font-bold" />
-                </div>
+                <!-- Status Message -->
+                <x-auth-session-status class="mb-4" :status="session('status')" />
 
-                <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between px-2">
-                    <label for="remember_me" class="inline-flex items-center cursor-pointer group">
-                        <input id="remember_me" type="checkbox"
-                            class="w-5 h-5 rounded border-2 border-slate-300 text-[#38BDF8] focus:ring-[#38BDF8] cursor-pointer"
-                            name="remember">
-                        <span class="ml-2 text-sm font-bold text-slate-500 group-hover:text-slate-700 transition">Ingat
-                            saya</span>
-                    </label>
+                <!-- Login Form -->
+                <form method="POST" action="{{ route('login') }}">
+                    @csrf
 
-                    @if (Route::has('password.request'))
-                        <a class="text-sm font-bold text-[#F79A19] hover:text-[#d97706] transition"
-                            href="{{ route('password.request') }}">
-                            Lupa sandi?
-                        </a>
-                    @endif
-                </div>
+                    <!-- Email Field -->
+                    <div class="input-wrapper">
+                        <label for="email" class="input-label">📧 Email Pemain</label>
+                        <input id="email" type="email" name="email" value="{{ old('email') }}" required
+                            autofocus autocomplete="username" class="chunky-input" placeholder="nama@email.com">
+                        @error('email')
+                            <div class="error-message">{{ $message }}</div>
+                        @enderror
+                    </div>
 
-                <div class="pt-4">
-                    <button type="submit"
-                        class="btn-3d-green w-full py-4 text-xl font-black uppercase tracking-wider flex justify-center items-center gap-2">
+                    <!-- Password Field -->
+                    <div class="input-wrapper">
+                        <label for="password" class="input-label">🔐 Kata Sandi</label>
+                        <input id="password" type="password" name="password" required autocomplete="current-password"
+                            class="chunky-input" placeholder="Masukkan kata sandi...">
+                        @error('password')
+                            <div class="error-message">{{ $message }}</div>
+                        @enderror
+                    </div>
+
+                    <!-- Remember Me & Forgot Password -->
+                    <div class="remember-section">
+                        <label class="checkbox-wrapper">
+                            <input type="checkbox" id="remember_me" name="remember" class="chunky-checkbox">
+                            <span class="text-slate-600 font-bold">Ingat saya</span>
+                        </label>
+
+                        @if (Route::has('password.request'))
+                            <a class="forgot-link" href="{{ route('password.request') }}">Lupa sandi?</a>
+                        @endif
+                    </div>
+
+                    <!-- Submit Button -->
+                    <button type="submit" class="btn-adventure">
                         <span>🚀</span> MULAI PETUALANGAN
                     </button>
+                </form>
+
+                <!-- Register Link -->
+                <div class="register-prompt">
+                    <p class="register-text">Belum punya akun?</p>
+                    <a href="{{ route('register') }}" class="register-link">Daftar Karakter Baru →</a>
                 </div>
-            </form>
-
-            <div class="mt-8 text-center bg-slate-50 p-4 rounded-2xl border-2 border-slate-100">
-                <p class="text-sm font-bold text-slate-500">
-                    Belum punya akun? <br>
-                    <a href="{{ route('register') }}"
-                        class="text-[#38BDF8] hover:text-[#0284C7] font-black text-lg underline decoration-2 underline-offset-4 mt-1 inline-block">
-                        Daftar Karakter Baru!
-                    </a>
-                </p>
             </div>
-
         </div>
     </div>
 </x-guest-layout>
