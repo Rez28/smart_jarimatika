@@ -1,6 +1,7 @@
 @extends('layouts.app')
 
 @section('content')
+    @include('components.navbar')
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Fredoka:wght@400;500;600;700;900&display=swap');
 
@@ -272,6 +273,146 @@
             transform: translateY(6px);
             border-bottom-width: 0px;
         }
+
+        /* INTRO BUTTON */
+        .guide-btn {
+            width: 100%;
+            padding: 14px;
+            border-radius: 16px;
+            font-weight: 700;
+            font-size: 1rem;
+            transition: all 0.2s ease;
+            border-bottom: 4px solid;
+            cursor: pointer;
+            margin-bottom: 12px;
+            background-color: #8b5cf6;
+            border-bottom-color: #6d28d9;
+            color: white;
+        }
+
+        .guide-btn:active {
+            transform: translateY(4px);
+            border-bottom-width: 0px;
+        }
+
+        .guide-btn:hover {
+            transform: translateY(-2px);
+        }
+
+        /* INTRO MODAL */
+        .intro-modal {
+            position: fixed;
+            inset: 0;
+            background: rgba(15, 23, 42, 0.8);
+            backdrop-filter: blur(8px);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            z-index: 40;
+        }
+
+        .intro-modal.show {
+            display: flex;
+        }
+
+        .intro-card {
+            background: white;
+            padding: 40px;
+            border-radius: 32px;
+            border-bottom: 12px solid #8b5cf6;
+            max-width: 600px;
+            width: 90%;
+            max-height: 80vh;
+            overflow-y: auto;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+        }
+
+        .intro-card h2 {
+            font-size: 2rem;
+            font-weight: 900;
+            color: #1e293b;
+            margin-bottom: 20px;
+            text-align: center;
+        }
+
+        .intro-card .section {
+            margin-bottom: 24px;
+            padding: 16px;
+            background: #f1f5f9;
+            border-radius: 16px;
+            border-left: 4px solid #8b5cf6;
+        }
+
+        .intro-card .section h3 {
+            font-size: 1.25rem;
+            font-weight: 800;
+            color: #1e293b;
+            margin-bottom: 12px;
+        }
+
+        .intro-card .section p {
+            font-size: 1rem;
+            color: #475569;
+            line-height: 1.6;
+            margin-bottom: 8px;
+        }
+
+        .intro-card .finger-list {
+            background: white;
+            padding: 12px;
+            border-radius: 12px;
+            margin-top: 8px;
+        }
+
+        .intro-card .finger-list li {
+            margin: 8px 0;
+            color: #475569;
+            font-weight: 500;
+        }
+
+        .intro-card .close-intro {
+            width: 100%;
+            padding: 16px;
+            background-color: #8b5cf6;
+            border-bottom: 6px solid #6d28d9;
+            color: white;
+            font-weight: 900;
+            border-radius: 16px;
+            font-size: 1.1rem;
+            cursor: pointer;
+            margin-top: 24px;
+            transition: all 0.2s ease;
+        }
+
+        .intro-card .close-intro:active {
+            transform: translateY(6px);
+            border-bottom-width: 0px;
+        }
+
+        /* INSTRUCTION TEXT */
+        .instruction-section {
+            background: #fef3c7;
+            border-left: 4px solid #f59e0b;
+            padding: 16px;
+            border-radius: 12px;
+            margin-top: 16px;
+        }
+
+        .instruction-section .label {
+            font-size: 0.875rem;
+            font-weight: 700;
+            color: #92400e;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            margin-bottom: 8px;
+        }
+
+        .instruction-section .text {
+            font-size: 1rem;
+            color: #78350f;
+            line-height: 1.5;
+            font-weight: 600;
+        }
     </style>
 
     <div class="jarimatika-container py-6 px-4 sm:px-6 lg:px-8">
@@ -309,6 +450,11 @@
                             style="font-size: 0.875rem; font-weight: 700; color: #64748b; margin-bottom: 16px; text-transform: uppercase; letter-spacing: 0.05em;">
                             Pilih Angka</h3>
 
+                        <!-- Panduan Awal Button -->
+                        <button class="guide-btn" id="guide-btn" onclick="openIntroModal()">
+                            📖 Panduan Awal
+                        </button>
+
                         @for ($i = 1; $i <= 10; $i++)
                             <button class="nav-btn @if ($i <= $unlockedNumber) unlocked @else locked @endif"
                                 data-number="{{ $i }}" @if ($i > $unlockedNumber) disabled @endif>
@@ -329,16 +475,26 @@
                             Tutorial Angka <span id="tutorial-title">{{ $unlockedNumber }}</span>
                         </h2>
 
-                        <div class="tutorial-placeholder">
-                            <p style="font-size: 1.25rem;">
-                                Animasi Jari akan muncul di sini ✨
-                            </p>
+                        <div class="tutorial-placeholder relative">
+                            <video id="tutorial-video" class="w-full h-full object-cover rounded-xl" autoplay loop muted
+                                playsinline>
+                                <source src="{{ asset('videos/' . $unlockedNumber . '.mp4') }}" type="video/mp4">
+                            </video>
+                            <p id="video-fallback"
+                                class="hidden text-slate-500 font-semibold absolute inset-0 flex items-center justify-center">
+                                Video belum tersedia 😅</p>
                         </div>
 
                         <div class="instruction-text">
                             <p>
                                 Tekuk jari sesuai arahan untuk membentuk angka target 👆
                             </p>
+                        </div>
+
+                        <!-- Dynamic Instruction Section -->
+                        <div id="instruction-section" class="instruction-section" style="display: none;">
+                            <div class="label">📋 Instruksi Angka</div>
+                            <div id="instruction-text" class="text"></div>
                         </div>
                     </div>
                 </div>
@@ -396,6 +552,45 @@
 
     </div>
 
+    <!-- INTRO MODAL -->
+    <div id="intro-modal" class="intro-modal">
+        <div class="intro-card">
+            <h2>📖 Panduan Awal</h2>
+
+            <img src="{{ asset('images/anatomi_jari.png') }}" alt="Anatomi Jari"
+                class="w-full max-w-md mx-auto h-auto object-contain rounded-2xl mb-6 shadow-sm border-4 border-[#8B5CF6]">
+
+            <div class="section">
+                <h3>Nama-Nama Jari 👋</h3>
+                <ul class="finger-list">
+                    <li>🤞 <strong>Jari Telunjuk</strong> - jari kedua</li>
+                    <li>🖐️ <strong>Jari Tengah</strong> - jari ketiga (terpanjang)</li>
+                    <li>✋ <strong>Jari Manis</strong> - jari keempat</li>
+                    <li>🤟 <strong>Jari Kelingking</strong> - jari kelima</li>
+                </ul>
+            </div>
+
+            <div class="section">
+                <h3>Konsep Jarimatika</h3>
+                <p><strong>✊ Tangan Kanan = Satuan (1-9)</strong></p>
+                <p style="margin-bottom: 12px;">Jari-jari tangan kanan mewakili angka dari 1 hingga 9.</p>
+                <p><strong>✋ Tangan Kiri = Puluhan (10, 20, 30...)</strong></p>
+                <p>Jari-jari tangan kiri mewakili puluhan. Setiap jari yang dibuka = 10 lebih banyak.</p>
+            </div>
+
+            <div class="section">
+                <h3>Cara Bermain</h3>
+                <p>1️⃣ Pilih angka dari menu di sebelah kiri</p>
+                <p>2️⃣ Lihat video tutorial cara membentuk angka</p>
+                <p>3️⃣ Ikuti instruksi yang diberikan</p>
+                <p>4️⃣ Tunjukkan jarimu di depan kamera 📷</p>
+                <p>5️⃣ Sistem akan mengenali dan memberi feedback ✅</p>
+            </div>
+
+            <button class="close-intro" onclick="closeIntroModal()">Mengerti! Mari Mulai 🚀</button>
+        </div>
+    </div>
+
     <!-- MediaPipe Libraries -->
     <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js" crossorigin="anonymous"></script>
     <script src="https://cdn.jsdelivr.net/npm/@mediapipe/control_utils/control_utils.js" crossorigin="anonymous"></script>
@@ -415,11 +610,33 @@
         window.updateProgressUrl = "{{ route('jarimatika.belajar.progress') }}";
         window.csrfToken = "{{ csrf_token() }}";
 
+        // Data instruksi untuk setiap angka
+        const numberInstructions = {
+            1: "Tangan Kanan: Buka jari telunjuk, tutup jari lainnya. Telapak tangan menghadap ke depan.",
+            2: "Tangan Kanan: Buka jari telunjuk dan jari tengah dalam bentuk 'V', tutup jari lainnya.",
+            3: "Tangan Kanan: Buka jari telunjuk, jari tengah, dan jari manis. Tutup ibu jari dan kelingking.",
+            4: "Tangan Kanan: Buka jari telunjuk, tengah, manis, dan kelingking. Tutup hanya ibu jari.",
+            5: "Tangan Kanan: Buka semua jari (5 jari). Telapak tangan menghadap ke depan.",
+            6: "Tangan Kiri: Buka jari telunjuk. Tangan Kanan: Buka semua jari. Total = 10 + 5 = 15... Awal angka puluhan!",
+            7: "Tangan Kiri: Buka jari telunjuk. Tangan Kanan: Buka jari telunjuk dan tengah. Total = 10 + 2 = 12.",
+            8: "Tangan Kiri: Buka jari telunjuk. Tangan Kanan: Buka jari telunjuk, tengah, dan manis. Total = 10 + 3 = 13.",
+            9: "Tangan Kiri: Buka jari telunjuk. Tangan Kanan: Buka jari telunjuk, tengah, manis, dan kelingking. Total = 10 + 4 = 14.",
+            10: "Tangan Kiri: Buka jari telunjuk dan tengah dalam bentuk 'V'. Tangan Kanan: Tutup semua jari (genggaman). Total = 20 + 0 = 20."
+        };
+
         function closeStartOverlay() {
             const overlay = document.getElementById('start-overlay');
             overlay.style.opacity = '0';
             overlay.style.transition = 'opacity 0.4s ease';
             setTimeout(() => overlay.style.display = 'none', 400);
+        }
+
+        function openIntroModal() {
+            document.getElementById('intro-modal').classList.add('show');
+        }
+
+        function closeIntroModal() {
+            document.getElementById('intro-modal').classList.remove('show');
         }
 
         // Update UI based on unlocked number
@@ -428,7 +645,7 @@
             setInterval(function() {
                 if (window.gameState && window.gameState.detectedNumber !== undefined) {
                     document.getElementById('detected-number').textContent = window.gameState
-                    .detectedNumber;
+                        .detectedNumber;
                     document.getElementById('user-current-answer').textContent = window.gameState
                         .detectedNumber;
                 }
@@ -439,7 +656,38 @@
                 btn.addEventListener('click', function() {
                     const number = this.dataset.number;
                     document.getElementById('tutorial-title').textContent = number;
-                    // Add logic to update tutorial content
+
+                    // Update video source
+                    const videoEl = document.getElementById('tutorial-video');
+                    const fallbackEl = document.getElementById('video-fallback');
+                    const instructionSection = document.getElementById('instruction-section');
+                    const instructionText = document.getElementById('instruction-text');
+
+                    videoEl.src = '/videos/' + number + '.mp4';
+                    videoEl.load();
+
+                    // Update instruction text
+                    if (numberInstructions[number]) {
+                        instructionText.textContent = numberInstructions[number];
+                        instructionSection.style.display = 'block';
+                    } else {
+                        instructionSection.style.display = 'none';
+                    }
+
+                    // Handle video error (file not found)
+                    videoEl.onerror = function() {
+                        videoEl.classList.add('hidden');
+                        fallbackEl.classList.remove('hidden');
+                    };
+
+                    // Handle video loaded successfully
+                    videoEl.onloadeddata = function() {
+                        videoEl.classList.remove('hidden');
+                        fallbackEl.classList.add('hidden');
+                        videoEl.play().catch(function(err) {
+                            console.warn('Video play failed:', err);
+                        });
+                    };
                 });
             });
 
@@ -447,6 +695,13 @@
             document.getElementById('try-btn').addEventListener('click', function() {
                 if (typeof window.startCameraSystem === 'function') {
                     window.startCameraSystem();
+                }
+            });
+
+            // Close intro modal when clicking outside
+            document.getElementById('intro-modal').addEventListener('click', function(e) {
+                if (e.target === this) {
+                    closeIntroModal();
                 }
             });
         });

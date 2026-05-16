@@ -8,7 +8,7 @@ class MatchmakingWaiting extends Model
 {
     protected $table = 'matchmaking_waiting';
 
-    protected $fillable = ['user_id', 'user_name'];
+    protected $fillable = ['user_id', 'user_name', 'mode'];
 
     public $timestamps = true;
 

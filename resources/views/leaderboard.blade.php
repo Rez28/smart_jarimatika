@@ -41,15 +41,41 @@
     <div class="jarimatika-leaderboard py-8 px-4 sm:px-6">
         <div class="max-w-[1000px] mx-auto">
 
-            <div class="text-center mb-12">
+            <div class="text-center mb-8">
                 <div
                     class="inline-block bg-[#FFE52A] text-slate-800 px-6 py-2 rounded-full text-lg font-black uppercase tracking-widest border-b-4 border-[#ccb622] mb-4 shadow-sm">
                     🏆 Hall of Fame
                 </div>
                 <h1 class="text-4xl md:text-5xl font-black text-slate-800 drop-shadow-sm mb-2">Papan Peringkat Global</h1>
-                <p class="text-slate-500 font-semibold">Berdasarkan Piala (Trophy) - Berkompetisi dengan
-                    {{ $users->count() }} pemain!</p>
             </div>
+
+            <!-- Tab Kategori -->
+            <div class="flex gap-2 mb-8 justify-center flex-wrap">
+                <a href="{{ route('reward.leaderboard') }}"
+                    class="px-6 py-3 rounded-2xl font-black text-lg transition-all {{ $category === 'trophy' ? 'bg-[#FFE52A] text-slate-800 border-b-4 border-[#ccb622] shadow-lg transform -translate-y-1' : 'bg-white text-slate-600 border-2 border-slate-200 hover:border-slate-300' }}">
+                    🏆 Kolektor Piala
+                </a>
+                <a href="{{ route('reward.leaderboard.type', 'level') }}"
+                    class="px-6 py-3 rounded-2xl font-black text-lg transition-all {{ $category === 'level' ? 'bg-[#BBCB64] text-white border-b-4 border-[#8fa040] shadow-lg transform -translate-y-1' : 'bg-white text-slate-600 border-2 border-slate-200 hover:border-slate-300' }}">
+                    ⭐ Level Tertinggi
+                </a>
+                <a href="{{ route('reward.leaderboard.type', 'winrate') }}"
+                    class="px-6 py-3 rounded-2xl font-black text-lg transition-all {{ $category === 'winrate' ? 'bg-[#F79A19] text-white border-b-4 border-[#c8790f] shadow-lg transform -translate-y-1' : 'bg-white text-slate-600 border-2 border-slate-200 hover:border-slate-300' }}">
+                    🎯 Rasio Kemenangan
+                </a>
+            </div>
+
+            <!-- Deskripsi Kategori -->
+            @if ($category === 'trophy')
+                <p class="text-center text-slate-500 font-semibold mb-8">Berdasarkan Piala (Trophy) - Berkompetisi dengan
+                    {{ $users->count() }} pemain!</p>
+            @elseif ($category === 'level')
+                <p class="text-center text-slate-500 font-semibold mb-8">Berdasarkan Level (Total XP) - Siapa yang paling
+                    kuat?</p>
+            @else
+                <p class="text-center text-slate-500 font-semibold mb-8">Berdasarkan Win Rate (%) - Siapa yang paling
+                    menang?</p>
+            @endif
 
             @php
                 $topThree = $users->take(3);
@@ -67,7 +93,13 @@
                         <div class="text-5xl mb-2">🥈</div>
                         <h3 class="text-2xl font-black text-slate-800 truncate">{{ $topThree[1]->name }}</h3>
                         <p class="text-slate-500 font-bold text-xs mt-1">Lv. {{ $topThree[1]->level }}</p>
-                        <p class="text-[#be185d] font-black text-lg mt-2">🏆 {{ $topThree[1]->piala }} Piala</p>
+                        @if ($category === 'trophy')
+                            <p class="text-[#be185d] font-black text-lg mt-2">🏆 {{ $topThree[1]->piala }} Piala</p>
+                        @elseif ($category === 'level')
+                            <p class="text-[#8fa040] font-black text-lg mt-2">⭐ {{ $topThree[1]->total_xp }} XP</p>
+                        @else
+                            <p class="text-[#c8790f] font-black text-lg mt-2">🎯 {{ $topThree[1]->win_rate ?? 0 }}%</p>
+                        @endif
                     </div>
                 @endif
 
@@ -84,7 +116,13 @@
                         <div class="text-7xl mb-4">🥇</div>
                         <h3 class="text-3xl font-black text-slate-800 truncate">{{ $topThree[0]->name }}</h3>
                         <p class="text-slate-600 font-bold text-sm mt-1">Lv. {{ $topThree[0]->level }}</p>
-                        <p class="text-[#c8790f] font-black text-2xl mt-2">🏆 {{ $topThree[0]->piala }} Piala</p>
+                        @if ($category === 'trophy')
+                            <p class="text-[#c8790f] font-black text-2xl mt-2">🏆 {{ $topThree[0]->piala }} Piala</p>
+                        @elseif ($category === 'level')
+                            <p class="text-[#8fa040] font-black text-2xl mt-2">⭐ {{ $topThree[0]->total_xp }} XP</p>
+                        @else
+                            <p class="text-[#c8790f] font-black text-2xl mt-2">🎯 {{ $topThree[0]->win_rate ?? 0 }}%</p>
+                        @endif
                     </div>
                 @endif
 
@@ -98,7 +136,13 @@
                         <div class="text-4xl mb-2">🥉</div>
                         <h3 class="text-xl font-black text-slate-800 truncate">{{ $topThree[2]->name }}</h3>
                         <p class="text-slate-500 font-bold text-xs mt-1">Lv. {{ $topThree[2]->level }}</p>
-                        <p class="text-[#F79A19] font-black text-lg mt-2">🏆 {{ $topThree[2]->piala }} Piala</p>
+                        @if ($category === 'trophy')
+                            <p class="text-[#F79A19] font-black text-lg mt-2">🏆 {{ $topThree[2]->piala }} Piala</p>
+                        @elseif ($category === 'level')
+                            <p class="text-[#8fa040] font-black text-lg mt-2">⭐ {{ $topThree[2]->total_xp }} XP</p>
+                        @else
+                            <p class="text-[#c8790f] font-black text-lg mt-2">🎯 {{ $topThree[2]->win_rate ?? 0 }}%</p>
+                        @endif
                     </div>
                 @endif
 
@@ -118,25 +162,49 @@
                     @foreach ($users as $user)
                         @if ($user->rank > 3)
                             <div class="rank-row flex items-center justify-between p-4 md:px-6">
-                                <div class="flex items-center gap-4 md:gap-6">
+                                <div class="flex items-center gap-4 md:gap-6 flex-1">
                                     <div
-                                        class="w-10 h-10 rounded-full bg-slate-100 flex items-center justify-center font-black text-slate-400 text-lg">
+                                        class="w-10 h-10 rounded-full bg-slate-100 flex items-center justify-center font-black text-slate-400 text-lg shrink-0">
                                         #{{ $user->rank }}
                                     </div>
                                     <div class="flex items-center gap-3">
-                                        <div
-                                            class="w-12 h-12 rounded-full bg-[#38BDF8] text-white flex items-center justify-center font-black text-xl border-2 border-sky-200 hidden sm:flex">
-                                            {{ strtoupper(substr($user->name, 0, 1)) }}
-                                        </div>
+                                        @php
+                                            $avatar = $user->active_avatar;
+                                            $isEmoji = $avatar && strlen($avatar) < 10 && !str_contains($avatar, '/');
+                                        @endphp
+                                        @if ($avatar && !$isEmoji)
+                                            <img src="{{ asset($avatar) }}"
+                                                class="w-12 h-12 rounded-full border-2 border-sky-200 hidden sm:block object-cover">
+                                        @elseif ($avatar && $isEmoji)
+                                            <div
+                                                class="w-12 h-12 rounded-full bg-white border-2 border-sky-200 hidden sm:flex items-center justify-center text-2xl">
+                                                {{ $avatar }}
+                                            </div>
+                                        @else
+                                            <div
+                                                class="w-12 h-12 rounded-full bg-[#38BDF8] text-white flex items-center justify-center font-black text-xl border-2 border-sky-200 hidden sm:flex">
+                                                {{ strtoupper(substr($user->name, 0, 1)) }}
+                                            </div>
+                                        @endif
                                         <div>
                                             <p class="font-bold text-slate-800 text-lg">{{ $user->name }}</p>
                                             <p class="text-xs text-slate-400 font-semibold">Lv. {{ $user->level }}</p>
                                         </div>
                                     </div>
                                 </div>
-                                <div class="text-right">
-                                    <p class="text-[#be185d] font-black text-xl md:text-2xl">🏆 {{ $user->piala }} <span
-                                            class="text-sm text-slate-400">Piala</span></p>
+                                <div class="text-right shrink-0">
+                                    @if ($category === 'trophy')
+                                        <p class="text-[#be185d] font-black text-xl md:text-2xl">🏆 {{ $user->piala }}
+                                            <span class="text-sm text-slate-400">Piala</span>
+                                        </p>
+                                    @elseif ($category === 'level')
+                                        <p class="text-[#8fa040] font-black text-xl md:text-2xl">⭐ {{ $user->total_xp }}
+                                            <span class="text-sm text-slate-400">XP</span>
+                                        </p>
+                                    @else
+                                        <p class="text-[#c8790f] font-black text-xl md:text-2xl">🎯
+                                            {{ $user->win_rate ?? 0 }}%<span class="text-sm text-slate-400"> WR</span></p>
+                                    @endif
                                 </div>
                             </div>
                         @endif
@@ -147,15 +215,30 @@
         </div>
     </div>
 
+    <!-- Footer dengan Posisi Pemain -->
     <div
         class="fixed bottom-0 left-0 right-0 z-50 bg-[#38BDF8] border-t-[8px] border-[#0284C7] rounded-t-[32px] px-6 py-4 text-white shadow-[0_-10px_40px_rgba(2,132,199,0.3)]">
         <div class="mx-auto flex max-w-5xl flex-col sm:flex-row items-center justify-between gap-4 font-family-fredoka">
 
             <div class="flex items-center gap-4 text-center sm:text-left">
-                <div
-                    class="w-12 h-12 rounded-full bg-white text-[#38BDF8] flex items-center justify-center font-black text-xl border-4 border-[#8cd7f9]">
-                    {{ strtoupper(substr($currentUser?->name ?? 'G', 0, 1)) }}
-                </div>
+                @php
+                    $currAvatar = $currentUser?->active_avatar;
+                    $currIsEmoji = $currAvatar && strlen($currAvatar) < 10 && !str_contains($currAvatar, '/');
+                @endphp
+                @if ($currAvatar && !$currIsEmoji)
+                    <img src="{{ asset($currAvatar) }}"
+                        class="w-12 h-12 rounded-full border-4 border-[#8cd7f9] object-cover">
+                @elseif ($currAvatar && $currIsEmoji)
+                    <div
+                        class="w-12 h-12 rounded-full bg-white border-4 border-[#8cd7f9] flex items-center justify-center text-2xl">
+                        {{ $currAvatar }}
+                    </div>
+                @else
+                    <div
+                        class="w-12 h-12 rounded-full bg-white text-[#38BDF8] flex items-center justify-center font-black text-xl border-4 border-[#8cd7f9]">
+                        {{ strtoupper(substr($currentUser?->name ?? 'G', 0, 1)) }}
+                    </div>
+                @endif
                 <div>
                     <p class="text-sm text-sky-100 font-semibold uppercase tracking-widest">Posisi Kamu Saat Ini</p>
                     <p class="text-2xl font-black drop-shadow-sm">
@@ -172,11 +255,25 @@
             </div>
 
             <div class="flex items-center gap-3">
-                <div
-                    class="bg-white/20 px-4 py-2 rounded-2xl border-2 border-white/30 backdrop-blur-sm flex items-center gap-2">
-                    <span class="text-2xl">🏆</span>
-                    <span class="font-black text-xl">{{ $currentUser?->piala ?? 0 }} Piala</span>
-                </div>
+                @if ($category === 'trophy')
+                    <div
+                        class="bg-white/20 px-4 py-2 rounded-2xl border-2 border-white/30 backdrop-blur-sm flex items-center gap-2">
+                        <span class="text-2xl">🏆</span>
+                        <span class="font-black text-xl">{{ $currentUser?->piala ?? 0 }} Piala</span>
+                    </div>
+                @elseif ($category === 'level')
+                    <div
+                        class="bg-white/20 px-4 py-2 rounded-2xl border-2 border-white/30 backdrop-blur-sm flex items-center gap-2">
+                        <span class="text-2xl">⭐</span>
+                        <span class="font-black text-xl">{{ $currentUser?->total_xp ?? 0 }} XP</span>
+                    </div>
+                @else
+                    <div
+                        class="bg-white/20 px-4 py-2 rounded-2xl border-2 border-white/30 backdrop-blur-sm flex items-center gap-2">
+                        <span class="text-2xl">🎯</span>
+                        <span class="font-black text-xl">{{ $currentUser?->win_rate ?? 0 }}% WR</span>
+                    </div>
+                @endif
                 <div
                     class="bg-[#BBCB64] border-b-4 border-[#8fa040] px-4 py-2 rounded-2xl flex items-center gap-2 shadow-sm">
                     <span class="font-black text-lg">Level {{ $currentUser?->level ?? 1 }}</span>

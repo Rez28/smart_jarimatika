@@ -1,6 +1,8 @@
 @extends('layouts.app')
 
 @section('content')
+    @include('components.navbar')
+
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Fredoka:wght@400;500;600;700;900&display=swap');
 
@@ -33,6 +35,17 @@
             transform: translateY(6px);
         }
 
+        .btn-3d-back {
+            background: linear-gradient(135deg, #F79A19 0%, #EA580C 100%);
+            border-bottom: 6px solid #c8790f;
+            transition: all 0.15s ease;
+        }
+
+        .btn-3d-back:active:not(:disabled) {
+            border-bottom-width: 0px;
+            transform: translateY(6px);
+        }
+
         .btn-3d-disabled {
             background-color: #cbd5e1;
             border-bottom: 6px solid #94a3b8;
@@ -48,10 +61,24 @@
             <aside
                 class="game-card p-6 md:p-8 border-b-[8px] border-[#38BDF8] flex flex-col items-center text-center sticky top-8">
 
-                <div
-                    class="w-32 h-32 rounded-full bg-[#FFE52A] border-[6px] border-white shadow-lg flex items-center justify-center text-6xl font-black text-slate-800 mb-4 transform hover:scale-105 transition-transform">
-                    {{ strtoupper(substr($user->name, 0, 1)) }}
-                </div>
+                @php
+                    $avatar = $user->active_avatar;
+                    $isEmoji = $avatar && strlen($avatar) < 10 && !str_contains($avatar, '/');
+                @endphp
+                @if ($avatar && !$isEmoji)
+                    <img src="{{ asset($avatar) }}"
+                        class="rounded-full w-32 h-32 border-[6px] border-white shadow-lg mb-4 transform hover:scale-105 transition-transform object-cover">
+                @elseif ($avatar && $isEmoji)
+                    <div
+                        class="w-32 h-32 rounded-full bg-white border-[6px] border-[#38BDF8] shadow-lg flex items-center justify-center text-6xl mb-4 transform hover:scale-105 transition-transform">
+                        {{ $avatar }}
+                    </div>
+                @else
+                    <div
+                        class="w-32 h-32 rounded-full bg-[#FFE52A] border-[6px] border-white shadow-lg flex items-center justify-center text-6xl font-black text-slate-800 mb-4 transform hover:scale-105 transition-transform">
+                        {{ strtoupper(substr($user->name, 0, 1)) }}
+                    </div>
+                @endif
 
                 <p class="text-sm font-bold uppercase tracking-widest text-[#38BDF8] mb-1">Penjelajah Angka</p>
                 <h2 class="text-3xl font-black text-slate-800 mb-6">{{ $user->name }}</h2>
@@ -77,6 +104,14 @@
 
             <main class="space-y-6">
 
+                <!-- Tombol Kembali -->
+                <div class="flex gap-3">
+                    <a href="{{ route('dashboard') }}"
+                        class="inline-flex items-center gap-2 px-6 py-4 text-lg font-black rounded-2xl tracking-wide btn-3d-back text-white hover:shadow-lg transition-shadow">
+                        <span>←</span> Kembali
+                    </a>
+                </div>
+
                 <section
                     class="game-card p-6 md:p-8 border-b-[8px] border-[#FFE52A] flex flex-col sm:flex-row items-center justify-between gap-6 bg-white overflow-hidden relative">
                     <div class="absolute -right-10 -bottom-10 text-[10rem] opacity-10 pointer-events-none">🛍️</div>
@@ -98,15 +133,17 @@
 
                         <div
                             class="game-card p-6 border-b-[8px] {{ $isOwned ? 'border-[#22C55E]' : ($canBuy ? 'border-[#BBCB64]' : 'border-slate-300 bg-slate-50') }} flex flex-col text-center relative group">
-                            
+
                             @if ($isEquipped)
-                                <div class="absolute top-3 right-3 bg-[#22C55E] text-white font-black px-3 py-1 rounded-full text-xs z-10 flex items-center gap-1 animate-pulse">
+                                <div
+                                    class="absolute top-3 right-3 bg-[#22C55E] text-white font-black px-3 py-1 rounded-full text-xs z-10 flex items-center gap-1 animate-pulse">
                                     ✅ Sedang Dipakai
                                 </div>
                             @endif
 
                             @if ($isOwned && !$isEquipped)
-                                <div class="absolute top-3 right-3 bg-[#38BDF8] text-white font-black px-3 py-1 rounded-full text-xs z-10">
+                                <div
+                                    class="absolute top-3 right-3 bg-[#38BDF8] text-white font-black px-3 py-1 rounded-full text-xs z-10">
                                     ✓ Dimiliki
                                 </div>
                             @endif
@@ -127,20 +164,23 @@
 
                             @if (!$isOwned)
                                 <!-- Tombol Beli -->
-                                <button type="button" class="shop-buy-btn w-full py-4 text-lg font-black rounded-2xl tracking-wide {{ $canBuy ? 'btn-3d-green text-white' : 'btn-3d-disabled' }}"
-                                    data-item-id="{{ $item['id'] }}"
-                                    {{ $canBuy ? '' : 'disabled' }}>
+                                <button type="button"
+                                    class="shop-buy-btn w-full py-4 text-lg font-black rounded-2xl tracking-wide {{ $canBuy ? 'btn-3d-green text-white' : 'btn-3d-disabled' }}"
+                                    data-item-id="{{ $item['id'] }}" {{ $canBuy ? '' : 'disabled' }}>
                                     {{ $user->koin >= $item['price'] ? 'Beli Item' : 'Koin Tidak Cukup' }}
                                 </button>
                             @else
                                 @if ($isEquipped)
                                     <!-- Tombol Sedang Dipakai (Disabled) -->
-                                    <button type="button" class="w-full py-4 text-lg font-black rounded-2xl tracking-wide btn-3d-disabled" disabled>
+                                    <button type="button"
+                                        class="w-full py-4 text-lg font-black rounded-2xl tracking-wide btn-3d-disabled"
+                                        disabled>
                                         ✓ Sedang Dipakai
                                     </button>
                                 @else
                                     <!-- Tombol Pakai -->
-                                    <button type="button" class="shop-equip-btn w-full py-4 text-lg font-black rounded-2xl tracking-wide btn-3d-green text-white"
+                                    <button type="button"
+                                        class="shop-equip-btn w-full py-4 text-lg font-black rounded-2xl tracking-wide btn-3d-green text-white"
                                         data-item-id="{{ $item['id'] }}">
                                         Pakai Item
                                     </button>
@@ -164,7 +204,7 @@
             btn.addEventListener('click', async (e) => {
                 e.preventDefault();
                 const itemId = btn.dataset.itemId;
-                
+
                 btn.disabled = true;
                 const originalText = btn.textContent;
                 btn.textContent = '⏳ Memproses...';
@@ -203,7 +243,7 @@
             btn.addEventListener('click', async (e) => {
                 e.preventDefault();
                 const itemId = btn.dataset.itemId;
-                
+
                 btn.disabled = true;
                 const originalText = btn.textContent;
                 btn.textContent = '⏳ Memproses...';

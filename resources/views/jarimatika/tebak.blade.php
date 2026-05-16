@@ -6,8 +6,8 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>🧠 Tebak Jari - Jarimatika</title>
 
-    <!-- Tailwind CSS -->
-    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Gunakan Vite bawaan Laravel (Menghilangkan warning CDN Tailwind) -->
+    @vite(['resources/css/app.css', 'resources/js/app.js'])
 
     <!-- Fredoka Font -->
     <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;500;600;700&display=swap" rel="stylesheet">
@@ -17,7 +17,7 @@
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 
     <style>
-        <style>* {
+        * {
             font-family: 'Fredoka', sans-serif;
         }
 
@@ -186,13 +186,6 @@
             font-size: 1.25rem;
         }
 
-        #soal-deskripsi {
-            color: #1F2937;
-            font-weight: 900;
-            font-size: 3.5rem;
-            line-height: 1;
-        }
-
         /* Slide in animation */
         @keyframes slide-in {
             from {
@@ -240,372 +233,278 @@
                 <div id="soal-tangan" class="text-blue-500 font-bold text-xl mb-4">
                     Tebak angka...
                 </div>
-                <div id="soal-deskripsi" class="text-5xl font-black mt-2">
-                    ?
+                <div id="soal-images" class="flex justify-center items-center gap-2 md:gap-4 slide-in">
+                    <img id="img-kiri" src=""
+                        class="w-32 h-32 md:w-48 md:h-48 object-contain bg-white/60 rounded-2xl border-2 border-slate-200 drop-shadow-md transition-transform transform hover:scale-105 hidden">
+                    <img id="img-kanan" src=""
+                        class="w-32 h-32 md:w-48 md:h-48 object-contain bg-white/60 rounded-2xl border-2 border-slate-200 drop-shadow-md transition-transform transform hover:scale-105 hidden">
                 </div>
-            </div>
 
-            <!-- ==================== ANSWER GRID (2x2) ==================== -->
-            <div class="grid grid-cols-2 gap-4">
-                <button class="btn-3d-green" id="btn-0" onclick="cekJawaban(this.textContent)">
-                    1
-                </button>
-                <button class="btn-3d-green" id="btn-1" onclick="cekJawaban(this.textContent)">
-                    2
-                </button>
-                <button class="btn-3d-green" id="btn-2" onclick="cekJawaban(this.textContent)">
-                    3
-                </button>
-                <button class="btn-3d-green" id="btn-3" onclick="cekJawaban(this.textContent)">
-                    4
-                </button>
-            </div>
+                <!-- ==================== ANSWER GRID (2x2) ==================== -->
+                <div class="grid grid-cols-2 gap-4">
+                    <button class="btn-3d-green" id="btn-0" onclick="cekJawaban(this.textContent)">
+                        1
+                    </button>
+                    <button class="btn-3d-green" id="btn-1" onclick="cekJawaban(this.textContent)">
+                        2
+                    </button>
+                    <button class="btn-3d-green" id="btn-2" onclick="cekJawaban(this.textContent)">
+                        3
+                    </button>
+                    <button class="btn-3d-green" id="btn-3" onclick="cekJawaban(this.textContent)">
+                        4
+                    </button>
+                </div>
 
+            </div>
         </div>
-    </div>
 
-    <!-- ==================== JAVASCRIPT LOGIC ==================== -->
-    <script>
-        // ==========================================
-        // DATABASE JARI (Finger Database)
-        // ==========================================
-        const databaseJari = [
-            // Satuan (Tangan Kanan) - 1-9
-            {
-                angka: 1,
-                deskripsi: "☝️ Telunjuk",
-                tangan: "Tangan Kanan (Satuan)"
-            },
-            {
-                angka: 2,
-                deskripsi: "✌️ Telunjuk & Tengah",
-                tangan: "Tangan Kanan (Satuan)"
-            },
-            {
-                angka: 3,
-                deskripsi: "🤟 Telunjuk, Tengah & Manis",
-                tangan: "Tangan Kanan (Satuan)"
-            },
-            {
-                angka: 4,
-                deskripsi: "🖐️ Semua tanpa Jempol",
-                tangan: "Tangan Kanan (Satuan)"
-            },
-            {
-                angka: 5,
-                deskripsi: "✋ Lima Jari",
-                tangan: "Tangan Kanan (Satuan)"
-            },
-            {
-                angka: 6,
-                deskripsi: "👍 Jempol + Telunjuk & Tengah",
-                tangan: "Tangan Kanan (Satuan)"
-            },
-            {
-                angka: 7,
-                deskripsi: "👍 Jempol + Telunjuk, Tengah & Manis",
-                tangan: "Tangan Kanan (Satuan)"
-            },
-            {
-                angka: 8,
-                deskripsi: "👍 Jempol + Empat Jari",
-                tangan: "Tangan Kanan (Satuan)"
-            },
-            {
-                angka: 9,
-                deskripsi: "✊ Kepalan (Tanpa Jempol)",
-                tangan: "Tangan Kanan (Satuan)"
-            },
+        <!-- ==================== JAVASCRIPT LOGIC ==================== -->
+        <script>
+            // ==========================================
+            // DATABASE JARI (Finger Database)
+            // ==========================================
+            const databaseJari = [];
 
-            // Puluhan (Tangan Kiri) - 10, 20, 30, ..., 90
-            {
-                angka: 10,
-                deskripsi: "☝️ Telunjuk",
-                tangan: "Tangan Kiri (Puluhan)"
-            },
-            {
-                angka: 20,
-                deskripsi: "✌️ Telunjuk & Tengah",
-                tangan: "Tangan Kiri (Puluhan)"
-            },
-            {
-                angka: 30,
-                deskripsi: "🤟 Telunjuk, Tengah & Manis",
-                tangan: "Tangan Kiri (Puluhan)"
-            },
-            {
-                angka: 40,
-                deskripsi: "🖐️ Semua tanpa Jempol",
-                tangan: "Tangan Kiri (Puluhan)"
-            },
-            {
-                angka: 50,
-                deskripsi: "✋ Lima Jari",
-                tangan: "Tangan Kiri (Puluhan)"
-            },
-            {
-                angka: 60,
-                deskripsi: "👍 Jempol + Telunjuk & Tengah",
-                tangan: "Tangan Kiri (Puluhan)"
-            },
-            {
-                angka: 70,
-                deskripsi: "👍 Jempol + Telunjuk, Tengah & Manis",
-                tangan: "Tangan Kiri (Puluhan)"
-            },
-            {
-                angka: 80,
-                deskripsi: "👍 Jempol + Empat Jari",
-                tangan: "Tangan Kiri (Puluhan)"
-            },
-            {
-                angka: 90,
-                deskripsi: "✊ Kepalan (Tanpa Jempol)",
-                tangan: "Tangan Kiri (Puluhan)"
-            },
+            for (let i = 1; i <= 99; i++) {
+                let jenisTangan = "";
+                if (i >= 1 && i <= 9) {
+                    jenisTangan = "Tangan Kanan (Satuan)";
+                } else if (i % 10 === 0) {
+                    jenisTangan = "Tangan Kiri (Puluhan)";
+                } else if (i >= 11 && i <= 19) {
+                    jenisTangan = "Dua Tangan (Belasan)";
+                } else {
+                    jenisTangan = "Dua Tangan (Puluhan & Satuan)";
+                }
 
-            // Belasan (Dua Tangan) - 11-19
-            {
-                angka: 11,
-                deskripsi: "Kiri: ☝️ | Kanan: ☝️",
-                tangan: "Dua Tangan (Belasan)"
-            },
-            {
-                angka: 12,
-                deskripsi: "Kiri: ☝️ | Kanan: ✌️",
-                tangan: "Dua Tangan (Belasan)"
-            },
-            {
-                angka: 13,
-                deskripsi: "Kiri: ☝️ | Kanan: 🤟",
-                tangan: "Dua Tangan (Belasan)"
-            },
-            {
-                angka: 14,
-                deskripsi: "Kiri: ☝️ | Kanan: 🖐️",
-                tangan: "Dua Tangan (Belasan)"
-            },
-            {
-                angka: 15,
-                deskripsi: "Kiri: ☝️ | Kanan: ✋",
-                tangan: "Dua Tangan (Belasan)"
-            },
-            {
-                angka: 16,
-                deskripsi: "Kiri: ☝️ | Kanan: 👍✌️",
-                tangan: "Dua Tangan (Belasan)"
-            },
-            {
-                angka: 17,
-                deskripsi: "Kiri: ☝️ | Kanan: 👍🤟",
-                tangan: "Dua Tangan (Belasan)"
-            },
-            {
-                angka: 18,
-                deskripsi: "Kiri: ☝️ | Kanan: 👍🖐️",
-                tangan: "Dua Tangan (Belasan)"
-            },
-            {
-                angka: 19,
-                deskripsi: "Kiri: ☝️ | Kanan: 👍✊",
-                tangan: "Dua Tangan (Belasan)"
-            },
-        ];
-
-        // ==========================================
-        // STATE MANAGEMENT
-        // ==========================================
-        let currentScore = 0;
-        let currentLives = 3;
-        let maxLives = 3;
-        let currentQuestion = null;
-        let currentAnswers = [];
-        let gameOver = false;
-
-        // ==========================================
-        // UTILITY FUNCTIONS
-        // ==========================================
-
-        /**
-         * Update lives display
-         */
-        function updateLives() {
-            const livesElement = document.getElementById('lives');
-            let livesDisplay = '';
-            for (let i = 0; i < currentLives; i++) {
-                livesDisplay += '❤️';
+                databaseJari.push({
+                    angka: i,
+                    tangan: jenisTangan
+                });
             }
-            for (let i = currentLives; i < maxLives; i++) {
-                livesDisplay += '🖤';
+
+            // ==========================================
+            // STATE MANAGEMENT
+            // ==========================================
+            let currentScore = 0;
+            let currentLives = 3;
+            let maxLives = 3;
+            let currentQuestion = null;
+            let currentAnswers = [];
+            let gameOver = false;
+
+            // ==========================================
+            // UTILITY FUNCTIONS
+            // ==========================================
+
+            /**
+             * Update lives display
+             */
+            function updateLives() {
+                const livesElement = document.getElementById('lives');
+                let livesDisplay = '';
+                for (let i = 0; i < currentLives; i++) {
+                    livesDisplay += '❤️';
+                }
+                for (let i = currentLives; i < maxLives; i++) {
+                    livesDisplay += '🖤';
+                }
+                livesElement.textContent = livesDisplay;
             }
-            livesElement.textContent = livesDisplay;
-        }
 
-        /**
-         * Update score display
-         */
-        function updateScore() {
-            document.getElementById('score').textContent = currentScore;
-        }
+            /**
+             * Update score display
+             */
+            function updateScore() {
+                document.getElementById('score').textContent = currentScore;
+            }
 
-        /**
-         * Get random element from array
-         */
-        function getRandomElement(arr) {
-            return arr[Math.floor(Math.random() * arr.length)];
-        }
+            /**
+             * Get random element from array
+             */
+            function getRandomElement(arr) {
+                return arr[Math.floor(Math.random() * arr.length)];
+            }
 
-        /**
-         * Generate random unique numbers
-         */
-        function getUniqueRandomNumbers(exclude, count, min = 1, max = 99) {
-            const numbers = [];
-            while (numbers.length < count) {
-                const num = Math.floor(Math.random() * (max - min + 1)) + min;
-                if (num !== exclude && !numbers.includes(num)) {
-                    numbers.push(num);
+            /**
+             * Generate random unique numbers
+             */
+            function getUniqueRandomNumbers(exclude, count, min = 1, max = 99) {
+                const numbers = [];
+                while (numbers.length < count) {
+                    const num = Math.floor(Math.random() * (max - min + 1)) + min;
+                    if (num !== exclude && !numbers.includes(num)) {
+                        numbers.push(num);
+                    }
+                }
+                return numbers;
+            }
+
+            /**
+             * Shuffle array
+             */
+            function shuffleArray(arr) {
+                return arr.sort(() => Math.random() - 0.5);
+            }
+
+            // ==========================================
+            // GAME LOGIC FUNCTIONS
+            // ==========================================
+
+            /**
+             * Generate soal (question)
+             */
+            function generateSoal() {
+                if (gameOver) return;
+
+                // Ambil 1 soal acak sebagai jawaban benar
+                currentQuestion = getRandomElement(databaseJari);
+
+                // Generate 3 angka salah
+                const wrongAnswers = getUniqueRandomNumbers(currentQuestion.angka, 3, 1, 99);
+
+                // Gabung dan acak posisi di 4 tombol
+                currentAnswers = shuffleArray([currentQuestion.angka, ...wrongAnswers]);
+
+                // Update UI dengan soal
+                document.getElementById('soal-tangan').textContent = currentQuestion.tangan;
+
+                // Update images
+                const imgKiri = document.getElementById('img-kiri');
+                const imgKanan = document.getElementById('img-kanan');
+                imgKiri.classList.add('hidden');
+                imgKanan.classList.add('hidden');
+
+                const angka = currentQuestion.angka;
+
+                if (angka >= 1 && angka <= 9) {
+                    // Hanya satuan (Kanan)
+                    imgKanan.src = '/images/jari/' + angka + '.png';
+                    imgKanan.classList.remove('hidden');
+                } else if (angka % 10 === 0) {
+                    // Hanya puluhan (Kiri)
+                    imgKiri.src = '/images/jari/' + angka + '.png';
+                    imgKiri.classList.remove('hidden');
+                } else {
+                    // Gabungan Puluhan dan Satuan
+                    const puluhan = Math.floor(angka / 10) * 10;
+                    const satuan = angka % 10;
+
+                    imgKiri.src = '/images/jari/' + puluhan + '.png';
+                    imgKiri.classList.remove('hidden');
+
+                    imgKanan.src = '/images/jari/' + satuan + '.png';
+                    imgKanan.classList.remove('hidden');
+                }
+
+                // Update button texts
+                document.getElementById('btn-0').textContent = currentAnswers[0];
+                document.getElementById('btn-1').textContent = currentAnswers[1];
+                document.getElementById('btn-2').textContent = currentAnswers[2];
+                document.getElementById('btn-3').textContent = currentAnswers[3];
+
+                // Reset button styles
+                document.querySelectorAll('.btn-3d-green').forEach(btn => {
+                    btn.classList.remove('shake-red', 'flash-green');
+                    btn.disabled = false;
+                });
+            }
+
+            /**
+             * Check jawaban (answer)
+             */
+            function cekJawaban(jawaban) {
+                if (gameOver || !currentQuestion) return;
+
+                const jawabanAngka = parseInt(jawaban);
+                const isCorrect = jawabanAngka === currentQuestion.angka;
+
+                if (isCorrect) {
+                    // ✅ JAWABAN BENAR
+                    currentScore += 10;
+                    updateScore();
+
+                    // Flash green effect
+                    document.body.classList.add('screen-flash');
+                    setTimeout(() => {
+                        document.body.classList.remove('screen-flash');
+                    }, 600);
+
+                    // Disable buttons
+                    document.querySelectorAll('.btn-3d-green').forEach(btn => {
+                        btn.disabled = true;
+                    });
+
+                    // Generate soal baru setelah delay
+                    setTimeout(() => {
+                        generateSoal();
+                    }, 800);
+
+                } else {
+                    // ❌ JAWABAN SALAH
+                    currentLives--;
+                    updateLives();
+
+                    // Shake animation pada tombol yang diklik
+                    const buttons = document.querySelectorAll('.btn-3d-green');
+                    buttons.forEach(btn => {
+                        if (parseInt(btn.textContent) === jawabanAngka) {
+                            btn.classList.add('shake-red');
+                        }
+                    });
+
+                    // Remove animation class setelah selesai
+                    setTimeout(() => {
+                        buttons.forEach(btn => btn.classList.remove('shake-red'));
+                    }, 500);
+
+                    // Check game over
+                    if (currentLives <= 0) {
+                        endGame();
+                    }
                 }
             }
-            return numbers;
-        }
 
-        /**
-         * Shuffle array
-         */
-        function shuffleArray(arr) {
-            return arr.sort(() => Math.random() - 0.5);
-        }
-
-        // ==========================================
-        // GAME LOGIC FUNCTIONS
-        // ==========================================
-
-        /**
-         * Generate soal (question)
-         */
-        function generateSoal() {
-            if (gameOver) return;
-
-            // Ambil 1 soal acak sebagai jawaban benar
-            currentQuestion = getRandomElement(databaseJari);
-
-            // Generate 3 angka salah
-            const wrongAnswers = getUniqueRandomNumbers(currentQuestion.angka, 3, 1, 99);
-
-            // Gabung dan acak posisi di 4 tombol
-            currentAnswers = shuffleArray([currentQuestion.angka, ...wrongAnswers]);
-
-            // Update UI dengan soal
-            document.getElementById('soal-tangan').textContent = currentQuestion.tangan;
-            document.getElementById('soal-deskripsi').textContent = currentQuestion.deskripsi;
-
-            // Update button texts
-            document.getElementById('btn-0').textContent = currentAnswers[0];
-            document.getElementById('btn-1').textContent = currentAnswers[1];
-            document.getElementById('btn-2').textContent = currentAnswers[2];
-            document.getElementById('btn-3').textContent = currentAnswers[3];
-
-            // Reset button styles
-            document.querySelectorAll('.btn-3d-green').forEach(btn => {
-                btn.classList.remove('shake-red', 'flash-green');
-                btn.disabled = false;
-            });
-        }
-
-        /**
-         * Check jawaban (answer)
-         */
-        function cekJawaban(jawaban) {
-            if (gameOver || !currentQuestion) return;
-
-            const jawabanAngka = parseInt(jawaban);
-            const isCorrect = jawabanAngka === currentQuestion.angka;
-
-            if (isCorrect) {
-                // ✅ JAWABAN BENAR
-                currentScore += 10;
-                updateScore();
-
-                // Flash green effect
-                document.body.classList.add('screen-flash');
-                setTimeout(() => {
-                    document.body.classList.remove('screen-flash');
-                }, 600);
-
-                // Disable buttons
+            /**
+             * End game
+             */
+            function endGame() {
+                gameOver = true;
                 document.querySelectorAll('.btn-3d-green').forEach(btn => {
                     btn.disabled = true;
                 });
 
-                // Generate soal baru setelah delay
+                // Show SweetAlert2
                 setTimeout(() => {
-                    generateSoal();
-                }, 800);
-
-            } else {
-                // ❌ JAWABAN SALAH
-                currentLives--;
-                updateLives();
-
-                // Shake animation pada tombol yang diklik
-                const buttons = document.querySelectorAll('.btn-3d-green');
-                buttons.forEach(btn => {
-                    if (parseInt(btn.textContent) === jawabanAngka) {
-                        btn.classList.add('shake-red');
-                    }
-                });
-
-                // Remove animation class setelah selesai
-                setTimeout(() => {
-                    buttons.forEach(btn => btn.classList.remove('shake-red'));
-                }, 500);
-
-                // Check game over
-                if (currentLives <= 0) {
-                    endGame();
-                }
-            }
-        }
-
-        /**
-         * End game
-         */
-        function endGame() {
-            gameOver = true;
-            document.querySelectorAll('.btn-3d-green').forEach(btn => {
-                btn.disabled = true;
-            });
-
-            // Show SweetAlert2
-            setTimeout(() => {
-                Swal.fire({
-                    title: '🎮 Game Over!',
-                    html: `<div class="text-2xl font-bold text-slate-800">
+                    Swal.fire({
+                        title: '🎮 Game Over!',
+                        html: `<div class="text-2xl font-bold text-slate-800">
                         Total Skor: <span class="text-4xl text-purple-600">${currentScore}</span>
                     </div>`,
-                    icon: 'warning',
-                    confirmButtonText: '🏠 Kembali ke Dasbor',
-                    confirmButtonColor: '#8B5CF6',
-                    allowOutsideClick: false,
-                    allowEscapeKey: false,
-                }).then((result) => {
-                    if (result.isConfirmed) {
-                        window.location.href = '/dashboard';
-                    }
-                });
-            }, 500);
-        }
+                        icon: 'warning',
+                        confirmButtonText: '🏠 Kembali ke Dasbor',
+                        confirmButtonColor: '#8B5CF6',
+                        allowOutsideClick: false,
+                        allowEscapeKey: false,
+                    }).then((result) => {
+                        if (result.isConfirmed) {
+                            window.location.href = '/dashboard';
+                        }
+                    });
+                }, 500);
+            }
 
-        // ==========================================
-        // INITIALIZATION
-        // ==========================================
-        document.addEventListener('DOMContentLoaded', () => {
-            updateLives();
-            updateScore();
-            generateSoal();
-            console.log('[TEBAK JARI] Game initialized with', databaseJari.length, 'questions');
-        });
-    </script>
+            // ==========================================
+            // INITIALIZATION
+            // ==========================================
+            document.addEventListener('DOMContentLoaded', () => {
+                updateLives();
+                updateScore();
+                generateSoal();
+                console.log('[TEBAK JARI] Game initialized with', databaseJari.length, 'questions');
+            });
+        </script>
 </body>
 
 </html>

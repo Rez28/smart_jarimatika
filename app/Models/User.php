@@ -25,6 +25,7 @@ class User extends Authenticatable
         'level',
         'piala',
         'is_admin',
+        'active_avatar',
     ];
 
     /**
@@ -58,6 +59,14 @@ class User extends Authenticatable
     public function progress()
     {
         return $this->hasOne(UserProgress::class);
+    }
+
+    /**
+     * Relasi ke inventory kosmetik user
+     */
+    public function inventory()
+    {
+        return $this->hasMany(UserInventory::class);
     }
 
     /**

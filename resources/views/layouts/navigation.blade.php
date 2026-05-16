@@ -83,8 +83,8 @@
                         </a>
                     @endauth
 
-                    <a href="{{ route('leaderboard') }}"
-                        class="floating-nav-link px-4 py-2 rounded-2xl text-sm font-bold transition-colors duration-200 {{ request()->routeIs('leaderboard') ? 'bg-yellow-100 text-yellow-700' : 'text-slate-500 hover:text-slate-700 hover:bg-slate-50' }}">
+                    <a href="{{ route('reward.leaderboard') }}"
+                        class="floating-nav-link px-4 py-2 rounded-2xl text-sm font-bold transition-colors duration-200 {{ request()->routeIs('reward.leaderboard') ? 'bg-yellow-100 text-yellow-700' : 'text-slate-500 hover:text-slate-700 hover:bg-slate-50' }}">
                         🏆 Peringkat
                     </a>
                 </div>
@@ -218,8 +218,8 @@
                             Battle</a>
                     @endauth
 
-                    <a href="{{ route('leaderboard') }}"
-                        class="block w-full px-3 py-2 text-sm font-bold text-slate-600 hover:bg-yellow-50 hover:text-yellow-600 rounded-lg {{ request()->routeIs('leaderboard') ? 'bg-yellow-100 text-yellow-600' : '' }}">🏆
+                    <a href="{{ route('reward.leaderboard') }}"
+                        class="block w-full px-3 py-2 text-sm font-bold text-slate-600 hover:bg-yellow-50 hover:text-yellow-600 rounded-lg {{ request()->routeIs('reward.leaderboard') ? 'bg-yellow-100 text-yellow-600' : '' }}">🏆
                         Peringkat</a>
                 </div>
 

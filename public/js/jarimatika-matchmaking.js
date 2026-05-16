@@ -61,7 +61,7 @@ async function quickMatch() {
                     'meta[name="csrf-token"]',
                 ).content,
             },
-            body: JSON.stringify({}),
+            body: JSON.stringify({ mode: window.gameMode || 'classic' }),
         });
 
         const data = await response.json();
@@ -83,6 +83,9 @@ async function createRoom() {
     isRoomHost = true;
     setStatus("Membuat room...", "text-slate-900");
 
+    // Deteksi mode dari window.gameMode (sudah di-set di blade file)
+    const mode = window.gameMode || 'classic';
+
     try {
         const response = await fetch(createRoomUrl, {
             method: "POST",
@@ -92,7 +95,7 @@ async function createRoom() {
                     'meta[name="csrf-token"]',
                 ).content,
             },
-            body: JSON.stringify({}),
+            body: JSON.stringify({ mode }),
         });
 
         console.log("Create Room Response Status:", response.status);
@@ -180,6 +183,8 @@ function startPolling() {
             let url = quickStatusUrl;
             if (currentMode === "room" && currentRoomCode) {
                 url = `${roomStatusUrl}?room_code=${encodeURIComponent(currentRoomCode)}`;
+            } else if (currentMode === "quick") {
+                url = `${quickStatusUrl}?mode=${window.gameMode || 'classic'}`;
             }
 
             const response = await fetch(url, {
@@ -229,7 +234,16 @@ function handleMatchFound(data) {
     queueConnection.className = "font-semibold text-emerald-400";
 
     setTimeout(() => {
-        location.href = `${battleUrl}?gameId=${encodeURIComponent(data.gameId)}`;
+        // Jika data memiliki mode, gunakan URL yang sesuai
+        let redirectUrl = `${battleUrl}?gameId=${encodeURIComponent(data.gameId)}`;
+        
+        if (data.mode === 'hitung') {
+            redirectUrl = `/jarimatika/battle/hitung?gameId=${encodeURIComponent(data.gameId)}`;
+        } else if (data.mode === 'classic') {
+            redirectUrl = `/jarimatika/battle?gameId=${encodeURIComponent(data.gameId)}`;
+        }
+        
+        location.href = redirectUrl;
     }, 1200);
 }
 

@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\ShopItem;
 use App\Models\UserItem;
+use App\Models\UserInventory;
 use Illuminate\Http\Request;
 
 class ShopController extends Controller
@@ -104,6 +105,8 @@ class ShopController extends Controller
                 ->where('user_id', $user->id)
                 ->where('shop_item_id', '!=', $itemId)
                 ->update(['is_equipped' => false]);
+
+            $user->update(['active_avatar' => $item->image_path]);
         }
         // Jika tipe border, unequip semua border lain
         elseif ($item->type === 'border') {
@@ -150,9 +153,72 @@ class ShopController extends Controller
 
         $userItem->update(['is_equipped' => false]);
 
+        $item = ShopItem::find($itemId);
+        if ($item && $item->type === 'avatar') {
+            $user->update(['active_avatar' => null]);
+        }
+
         return response()->json([
             'success' => true,
             'message' => 'Item berhasil dilepas!',
+        ]);
+    }
+
+    /**
+     * Equip item dari UserInventory dan update active_avatar di users
+     */
+    public function equipItem(Request $request)
+    {
+        $user = $request->user();
+        $itemId = $request->input('item_id');
+
+        if (!$itemId) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Item ID diperlukan.',
+            ], 400);
+        }
+
+        // Cari item di shop
+        $item = ShopItem::findOrFail($itemId);
+
+        // Cek apakah user memiliki item di inventory
+        $inventory = UserInventory::where('user_id', $user->id)
+            ->where('item_id', $itemId)
+            ->first();
+
+        if (!$inventory) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Anda tidak memiliki item ini di inventory.',
+            ], 404);
+        }
+
+        // Unequip item lain dengan tipe yang sama
+        UserInventory::where('user_id', $user->id)
+            ->where('item_type', $item->type)
+            ->where('item_id', '!=', $itemId)
+            ->update(['is_equipped' => false]);
+
+        // Equip item yang dipilih
+        $inventory->update(['is_equipped' => true]);
+
+        // Jika tipe avatar, update active_avatar di users
+        if ($item->type === 'avatar') {
+            $user->update([
+                'active_avatar' => $item->image_path,
+            ]);
+        }
+
+        return response()->json([
+            'success' => true,
+            'message' => $item->type === 'avatar' ? 'Avatar berhasil dipakai!' : 'Item berhasil dipakai!',
+            'item' => [
+                'id' => $item->id,
+                'name' => $item->name,
+                'type' => $item->type,
+                'image_path' => $item->image_path,
+            ],
         ]);
     }
 }

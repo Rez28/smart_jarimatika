@@ -150,6 +150,7 @@
     </div>
 
     <script>
+        window.gameMode = 'classic';
         window.jarimatikaMatchEndpoints = {
             quickJoinUrl: "{{ route('jarimatika.match.join') }}",
             statusUrl: "{{ route('jarimatika.match.status') }}",

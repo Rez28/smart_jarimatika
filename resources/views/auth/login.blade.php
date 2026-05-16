@@ -1,434 +1,601 @@
-<x-guest-layout>
-    <style>
-        @import url('https://fonts.googleapis.com/css2?family=Fredoka:wght@400;500;600;700;900&display=swap');
+<!DOCTYPE html>
+<html lang="id">
 
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+
+    <meta name="csrf-token" content="{{ csrf_token() }}">
+
+    <title>Smart Jarimatika - Login</title>
+
+    @vite(['resources/css/app.css', 'resources/js/app.js'])
+
+    <!-- Font -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link
+        href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600;700&family=Inter:wght@400;500;600;700&display=swap"
+        rel="stylesheet">
+
+    <style>
         * {
-            font-family: 'Fredoka', sans-serif !important;
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
         }
 
         body {
-            background: linear-gradient(135deg, #FFFBEB 0%, #F3E8FF 100%);
+            font-family: 'Inter', sans-serif;
             min-height: 100vh;
+            background:
+                radial-gradient(circle at top left, #EEF2FF 0%, transparent 35%),
+                radial-gradient(circle at bottom right, #DCFCE7 0%, transparent 35%),
+                #F8FAFC;
+            overflow-x: hidden;
         }
 
-        /* ==================== SPLIT SCREEN CONTAINER ==================== */
-        .split-container {
+        h1,
+        h2,
+        h3,
+        .brand-text {
+            font-family: 'Fredoka', sans-serif;
+        }
+
+        /* =========================
+           MAIN CONTAINER
+        ========================== */
+
+        .container-login {
+            min-height: 100vh;
             display: grid;
             grid-template-columns: 1fr 1fr;
-            gap: 0;
-            min-height: 100vh;
-            align-items: stretch;
         }
 
-        @media (max-width: 768px) {
-            .split-container {
+        @media (max-width: 900px) {
+            .container-login {
                 grid-template-columns: 1fr;
-                gap: 0;
-                min-height: auto;
+            }
+
+            .left-section {
+                display: none !important;
             }
         }
 
-        /* ==================== LEFT SIDE: MASCOT & MOTIVATION ==================== */
-        .mascot-section {
-            background: linear-gradient(135deg, #38BDF8 0%, #0284C7 50%, #10B981 100%);
-            display: flex;
-            flex-direction: column;
-            justify-content: center;
-            align-items: center;
-            padding: 2rem;
+        /* =========================
+           LEFT SECTION
+        ========================== */
+
+        .left-section {
             position: relative;
+            padding: 60px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
             overflow: hidden;
         }
 
-        .mascot-section::before {
-            content: '';
-            position: absolute;
-            top: -50%;
-            right: -50%;
-            width: 400px;
-            height: 400px;
-            background: rgba(255, 255, 255, 0.05);
-            border-radius: 50%;
+        .left-content {
+            position: relative;
+            z-index: 2;
+            max-width: 520px;
         }
 
-        .mascot-section::after {
-            content: '';
+        .logo-badge {
+            width: fit-content;
+            padding: 10px 18px;
+            background: rgba(79, 70, 229, 0.1);
+            color: #4F46E5;
+            border-radius: 999px;
+            font-weight: 700;
+            font-size: 14px;
+            margin-bottom: 28px;
+        }
+
+        .hero-title {
+            font-size: 56px;
+            line-height: 1.1;
+            color: #0F172A;
+            margin-bottom: 24px;
+            font-weight: 700;
+        }
+
+        .hero-description {
+            font-size: 18px;
+            line-height: 1.8;
+            color: #64748B;
+            margin-bottom: 40px;
+        }
+
+        /* Floating cards */
+
+        .stats-wrapper {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 18px;
+        }
+
+        .stats-card {
+            background: white;
+            border-radius: 24px;
+            padding: 18px 22px;
+            min-width: 180px;
+            box-shadow:
+                0 10px 30px rgba(15, 23, 42, 0.06);
+            border: 1px solid #E2E8F0;
+        }
+
+        .stats-top {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 10px;
+        }
+
+        .stats-icon {
+            width: 48px;
+            height: 48px;
+            border-radius: 16px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 22px;
+        }
+
+        .bg-purple {
+            background: #EEF2FF;
+        }
+
+        .bg-green {
+            background: #DCFCE7;
+        }
+
+        .bg-orange {
+            background: #FEF3C7;
+        }
+
+        .stats-title {
+            font-size: 15px;
+            font-weight: 600;
+            color: #64748B;
+        }
+
+        .stats-value {
+            font-size: 22px;
+            font-weight: 700;
+            color: #0F172A;
+        }
+
+        /* Decorative shapes */
+
+        .shape-1,
+        .shape-2,
+        .shape-3 {
             position: absolute;
-            bottom: -30%;
-            left: -30%;
+            border-radius: 999px;
+            opacity: 0.3;
+        }
+
+        .shape-1 {
             width: 300px;
             height: 300px;
-            background: rgba(255, 255, 255, 0.08);
-            border-radius: 50%;
+            background: #C7D2FE;
+            top: -100px;
+            left: -100px;
         }
 
-        .mascot-content {
-            position: relative;
-            z-index: 10;
-            text-align: center;
-            color: white;
+        .shape-2 {
+            width: 220px;
+            height: 220px;
+            background: #BBF7D0;
+            bottom: -60px;
+            right: -60px;
         }
 
-        .mascot-emoji {
-            font-size: 5rem;
-            margin-bottom: 1rem;
-            display: block;
-            animation: float 3s ease-in-out infinite;
+        .shape-3 {
+            width: 120px;
+            height: 120px;
+            background: #FDE68A;
+            top: 140px;
+            right: 80px;
         }
 
-        @keyframes float {
+        /* =========================
+           RIGHT SECTION
+        ========================== */
 
-            0%,
-            100% {
-                transform: translateY(0px);
-            }
-
-            50% {
-                transform: translateY(-20px);
-            }
-        }
-
-        .mascot-title {
-            font-size: 2.5rem;
-            font-weight: 900;
-            margin-bottom: 1rem;
-            letter-spacing: 1px;
-        }
-
-        .mascot-quotes {
-            font-size: 1.25rem;
-            font-weight: 600;
-            line-height: 1.6;
-            margin-bottom: 2rem;
-            text-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
-        }
-
-        .motivation-badge {
-            background: rgba(255, 255, 255, 0.2);
-            border: 3px solid rgba(255, 255, 255, 0.5);
-            border-radius: 20px;
-            padding: 1rem 1.5rem;
-            font-weight: 700;
-            backdrop-filter: blur(10px);
-            display: inline-block;
-        }
-
-        /* ==================== RIGHT SIDE: LOGIN FORM ==================== */
-        .form-section {
+        .right-section {
             display: flex;
-            flex-direction: column;
             justify-content: center;
             align-items: center;
-            padding: 2rem;
-            background-color: white;
-        }
-
-        @media (max-width: 768px) {
-            .form-section {
-                padding: 1.5rem;
-            }
-
-            .mascot-section {
-                padding: 1.5rem;
-                min-height: 300px;
-            }
-
-            .mascot-emoji {
-                font-size: 3rem;
-            }
-
-            .mascot-title {
-                font-size: 1.5rem;
-            }
-
-            .mascot-quotes {
-                font-size: 1rem;
-            }
+            padding: 40px;
         }
 
         .login-card {
             width: 100%;
-            max-width: 420px;
+            max-width: 460px;
+            background: white;
+            border-radius: 36px;
+            padding: 42px;
+            border: 1px solid #E2E8F0;
+            box-shadow:
+                0 20px 50px rgba(15, 23, 42, 0.08);
         }
 
         .login-header {
             text-align: center;
-            margin-bottom: 2rem;
+            margin-bottom: 38px;
         }
 
-        .brand-badge {
-            background: linear-gradient(135deg, #FFE52A 0%, #F79A19 100%);
-            color: #1e293b;
-            padding: 0.5rem 1.5rem;
-            border-radius: 20px;
-            font-size: 0.75rem;
-            font-weight: 900;
-            text-transform: uppercase;
-            letter-spacing: 1px;
-            display: inline-block;
-            margin-bottom: 1rem;
-            box-shadow: 0 6px 15px rgba(255, 165, 0, 0.2);
+        .login-logo {
+            width: 120px;
+            margin-bottom: 22px;
         }
 
-        .login-title {
-            font-size: 2.2rem;
-            font-weight: 900;
-            color: #1e293b;
-            margin-bottom: 0.5rem;
-            letter-spacing: -0.5px;
+        .welcome-text {
+            font-size: 36px;
+            color: #0F172A;
+            margin-bottom: 10px;
         }
 
-        .login-subtitle {
-            font-size: 1rem;
-            color: #64748b;
-            font-weight: 600;
-            margin-bottom: 2rem;
+        .subtitle {
+            color: #64748B;
+            line-height: 1.7;
+            font-size: 15px;
         }
 
-        /* ==================== CHUNKY INPUT FIELDS ==================== */
-        .input-wrapper {
-            margin-bottom: 1.5rem;
+        /* =========================
+           FORM
+        ========================== */
+
+        .form-group {
+            margin-bottom: 22px;
         }
 
-        .input-label {
+        .form-label {
             display: block;
-            color: #334155;
-            font-weight: 700;
-            margin-bottom: 0.75rem;
-            font-size: 0.95rem;
-            letter-spacing: 0.5px;
-        }
-
-        .chunky-input {
-            width: 100%;
-            padding: 1rem 1.75rem;
-            border: 4px solid #e2e8f0;
-            border-radius: 24px;
-            font-size: 1rem;
+            margin-bottom: 10px;
+            font-size: 14px;
             font-weight: 600;
-            color: #1e293b;
-            background-color: #f8fafc;
-            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+            color: #334155;
         }
 
-        .chunky-input::placeholder {
-            color: #cbd5e1;
-        }
-
-        .chunky-input:focus {
-            outline: none;
-            border-color: #38BDF8;
-            background-color: #f0f9ff;
-            box-shadow: 0 0 0 6px rgba(56, 189, 248, 0.15), 0 4px 12px rgba(0, 0, 0, 0.08);
-            transform: translateY(-2px);
-        }
-
-        .chunky-input:hover:not(:focus) {
-            border-color: #cbd5e1;
-            box-shadow: 0 6px 16px rgba(0, 0, 0, 0.08);
-        }
-
-        /* ==================== SUBMIT BUTTON WITH BOUNCE ==================== */
-        .btn-adventure {
+        .input-field {
             width: 100%;
-            padding: 1.25rem;
-            background: linear-gradient(135deg, #BBCB64 0%, #8fa040 100%);
-            color: white;
-            border: 4px solid #8fa040;
-            border-radius: 24px;
-            font-size: 1.1rem;
-            font-weight: 900;
-            text-transform: uppercase;
-            letter-spacing: 1.5px;
-            cursor: pointer;
-            transition: all 0.2s ease;
-            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.15);
-            margin-top: 0.5rem;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            gap: 0.75rem;
+            padding: 17px 20px;
+            border-radius: 18px;
+            border: 1.5px solid #E2E8F0;
+            background: #F8FAFC;
+            font-size: 15px;
+            font-weight: 500;
+            transition: 0.25s ease;
+            color: #0F172A;
         }
 
-        .btn-adventure:hover {
-            transform: translateY(-4px);
-            box-shadow: 0 15px 35px rgba(0, 0, 0, 0.2);
-            animation: bounce 0.6s ease;
+        .input-field::placeholder {
+            color: #94A3B8;
         }
 
-        @keyframes bounce {
-
-            0%,
-            100% {
-                transform: translateY(-4px);
-            }
-
-            50% {
-                transform: translateY(-10px);
-            }
+        .input-field:focus {
+            outline: none;
+            border-color: #4F46E5;
+            background: white;
+            box-shadow: 0 0 0 4px rgba(79, 70, 229, 0.12);
         }
 
-        .btn-adventure:active {
-            transform: translateY(0px);
-            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-        }
+        /* =========================
+           OPTIONS
+        ========================== */
 
-        /* ==================== REMEMBER & FORGOT PASSWORD ==================== */
-        .remember-section {
+        .options-wrapper {
             display: flex;
             justify-content: space-between;
             align-items: center;
-            margin: 1.5rem 0;
-            font-size: 0.95rem;
+            margin-top: 6px;
+            margin-bottom: 28px;
         }
 
-        .checkbox-wrapper {
+        .remember-wrapper {
             display: flex;
             align-items: center;
-            gap: 0.5rem;
+            gap: 10px;
         }
 
-        .chunky-checkbox {
-            width: 24px;
-            height: 24px;
-            cursor: pointer;
-            accent-color: #38BDF8;
+        .remember-wrapper input {
+            width: 18px;
+            height: 18px;
+            accent-color: #4F46E5;
         }
 
-        .forgot-link {
-            color: #F79A19;
-            font-weight: 700;
+        .remember-wrapper span {
+            font-size: 14px;
+            color: #64748B;
+            font-weight: 500;
+        }
+
+        .forgot-password {
             text-decoration: none;
-            transition: all 0.3s ease;
+            color: #4F46E5;
+            font-size: 14px;
+            font-weight: 600;
         }
 
-        .forgot-link:hover {
-            color: #EA580C;
+        .forgot-password:hover {
             text-decoration: underline;
         }
 
-        /* ==================== REGISTER LINK ==================== */
-        .register-prompt {
-            background: linear-gradient(135deg, #F0F9FF 0%, #F0FDF4 100%);
-            border: 3px solid #e0e7ff;
-            border-radius: 20px;
-            padding: 1.5rem;
+        /* =========================
+           BUTTON
+        ========================== */
+
+        .login-button {
+            width: 100%;
+            border: none;
+            cursor: pointer;
+            padding: 18px;
+            border-radius: 18px;
+            background: #4F46E5;
+            color: white;
+            font-size: 16px;
+            font-weight: 700;
+            transition: 0.25s ease;
+            box-shadow:
+                0 12px 24px rgba(79, 70, 229, 0.22);
+        }
+
+        .login-button:hover {
+            transform: translateY(-2px);
+            background: #4338CA;
+        }
+
+        /* =========================
+           REGISTER
+        ========================== */
+
+        .register-wrapper {
+            margin-top: 30px;
             text-align: center;
-            margin-top: 2rem;
         }
 
         .register-text {
-            font-weight: 600;
-            color: #475569;
-            margin-bottom: 0.75rem;
+            color: #64748B;
+            font-size: 15px;
         }
 
         .register-link {
-            color: #38BDF8;
-            font-weight: 900;
             text-decoration: none;
-            font-size: 1.05rem;
-            transition: all 0.3s ease;
+            color: #4F46E5;
+            font-weight: 700;
         }
 
         .register-link:hover {
-            color: #0284C7;
             text-decoration: underline;
-            text-decoration-thickness: 3px;
-            text-underline-offset: 6px;
         }
 
-        /* ==================== ERROR MESSAGES ==================== */
+        /* =========================
+           ERROR
+        ========================== */
+
         .error-message {
+            margin-top: 8px;
             color: #DC2626;
-            font-weight: 700;
-            font-size: 0.9rem;
-            margin-top: 0.5rem;
-            padding: 0.75rem;
-            background-color: #FEE2E2;
-            border-radius: 12px;
-            border-left: 4px solid #DC2626;
+            font-size: 13px;
+            font-weight: 500;
+        }
+
+        .session-status {
+            background: #DCFCE7;
+            color: #166534;
+            padding: 14px;
+            border-radius: 14px;
+            margin-bottom: 20px;
+            font-size: 14px;
+            font-weight: 600;
         }
     </style>
+</head>
 
-    <div class="split-container">
-        <!-- LEFT SIDE: MASCOT & MOTIVATION -->
-        <div class="mascot-section hidden md:flex">
-            <div class="mascot-content">
-                <span class="mascot-emoji">✌️</span>
-                <h2 class="mascot-title">Jari Matika</h2>
-                <p class="mascot-quotes">
-                    "Setiap jari adalah alat hitung yang ajaib!<br>
-                    Mari bermain sambil belajar matematika."
-                </p>
-                <div class="motivation-badge">
-                    🎯 Kalahkan pemain lain & Naik Level!
+<body>
+
+    <div class="container-login">
+
+        <!-- LEFT -->
+        <div class="left-section">
+
+            <div class="shape-1"></div>
+            <div class="shape-2"></div>
+            <div class="shape-3"></div>
+
+            <div class="left-content">
+
+                <div class="logo-badge">
+                    Smart Learning Platform
                 </div>
+
+                <h1 class="hero-title">
+                    Belajar Matematika Jadi Lebih Seru
+                </h1>
+
+                <p class="hero-description">
+                    Tingkatkan kemampuan berhitung dengan metode jarimatika
+                    yang interaktif, menyenangkan, dan mudah dipahami anak-anak.
+                </p>
+
+                <div class="stats-wrapper">
+
+                    <div class="stats-card">
+                        <div class="stats-top">
+                            <div class="stats-icon bg-purple">
+                                ⭐
+                            </div>
+
+                            <div>
+                                <div class="stats-title">
+                                    Level Belajar
+                                </div>
+
+                                <div class="stats-value">
+                                    Explorer
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="stats-card">
+                        <div class="stats-top">
+                            <div class="stats-icon bg-green">
+                                🔥
+                            </div>
+
+                            <div>
+                                <div class="stats-title">
+                                    Streak Belajar
+                                </div>
+
+                                <div class="stats-value">
+                                    7 Hari
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="stats-card">
+                        <div class="stats-top">
+                            <div class="stats-icon bg-orange">
+                                🧠
+                            </div>
+
+                            <div>
+                                <div class="stats-title">
+                                    Skill Utama
+                                </div>
+
+                                <div class="stats-value">
+                                    Penjumlahan
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                </div>
+
             </div>
+
         </div>
 
-        <!-- RIGHT SIDE: LOGIN FORM -->
-        <div class="form-section">
+        <!-- RIGHT -->
+        <div class="right-section">
+
             <div class="login-card">
-                <!-- Header -->
+
                 <div class="login-header">
-                    <div class="brand-badge">⚡ Smart Jarimatika</div>
-                    <h1 class="login-title">Masuk & Bermain!</h1>
-                    <p class="login-subtitle">Kumpulkan XP, Koin, dan Naik ke Level Tertinggi</p>
+
+                    <img src="{{ asset('images/logo.png') }}" alt="Smart Jarimatika" class="login-logo">
+
+                    <h1 class="welcome-text">
+                        Selamat Datang
+                    </h1>
+
+                    <p class="subtitle">
+                        Masuk untuk melanjutkan perjalanan belajar
+                        matematika bersama Smart Jarimatika.
+                    </p>
+
                 </div>
 
-                <!-- Status Message -->
-                <x-auth-session-status class="mb-4" :status="session('status')" />
+                @if (session('status'))
+                    <div class="session-status">
+                        {{ session('status') }}
+                    </div>
+                @endif
 
-                <!-- Login Form -->
                 <form method="POST" action="{{ route('login') }}">
+
                     @csrf
 
-                    <!-- Email Field -->
-                    <div class="input-wrapper">
-                        <label for="email" class="input-label">📧 Email Pemain</label>
+                    <!-- EMAIL -->
+                    <div class="form-group">
+
+                        <label for="email" class="form-label">
+                            Email
+                        </label>
+
                         <input id="email" type="email" name="email" value="{{ old('email') }}" required
-                            autofocus autocomplete="username" class="chunky-input" placeholder="nama@email.com">
+                            autofocus autocomplete="username" class="input-field" placeholder="Masukkan email anda">
+
                         @error('email')
-                            <div class="error-message">{{ $message }}</div>
+                            <div class="error-message">
+                                {{ $message }}
+                            </div>
                         @enderror
+
                     </div>
 
-                    <!-- Password Field -->
-                    <div class="input-wrapper">
-                        <label for="password" class="input-label">🔐 Kata Sandi</label>
+                    <!-- PASSWORD -->
+                    <div class="form-group">
+
+                        <label for="password" class="form-label">
+                            Password
+                        </label>
+
                         <input id="password" type="password" name="password" required autocomplete="current-password"
-                            class="chunky-input" placeholder="Masukkan kata sandi...">
+                            class="input-field" placeholder="Masukkan password">
+
                         @error('password')
-                            <div class="error-message">{{ $message }}</div>
+                            <div class="error-message">
+                                {{ $message }}
+                            </div>
                         @enderror
+
                     </div>
 
-                    <!-- Remember Me & Forgot Password -->
-                    <div class="remember-section">
-                        <label class="checkbox-wrapper">
-                            <input type="checkbox" id="remember_me" name="remember" class="chunky-checkbox">
-                            <span class="text-slate-600 font-bold">Ingat saya</span>
+                    <!-- OPTIONS -->
+                    <div class="options-wrapper">
+
+                        <label class="remember-wrapper">
+
+                            <input type="checkbox" name="remember" id="remember_me">
+
+                            <span>
+                                Ingat saya
+                            </span>
+
                         </label>
 
                         @if (Route::has('password.request'))
-                            <a class="forgot-link" href="{{ route('password.request') }}">Lupa sandi?</a>
+                            <a href="{{ route('password.request') }}" class="forgot-password">
+
+                                Lupa Password?
+                            </a>
                         @endif
+
                     </div>
 
-                    <!-- Submit Button -->
-                    <button type="submit" class="btn-adventure">
-                        <span>🚀</span> MULAI PETUALANGAN
+                    <!-- BUTTON -->
+                    <button type="submit" class="login-button">
+                        Masuk Sekarang
                     </button>
+
                 </form>
 
-                <!-- Register Link -->
-                <div class="register-prompt">
-                    <p class="register-text">Belum punya akun?</p>
-                    <a href="{{ route('register') }}" class="register-link">Daftar Karakter Baru →</a>
+                <!-- REGISTER -->
+                <div class="register-wrapper">
+
+                    <p class="register-text">
+                        Belum punya akun?
+                        <a href="{{ route('register') }}" class="register-link">
+
+                            Daftar sekarang
+                        </a>
+                    </p>
+
                 </div>
+
             </div>
+
         </div>
+
     </div>
-</x-guest-layout>
+
+</body>
+
+</html>

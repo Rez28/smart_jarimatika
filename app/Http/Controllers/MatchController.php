@@ -23,6 +23,7 @@ class MatchController extends Controller
     public function join(Request $request)
     {
         $user = $request->user();
+        $mode = $request->input('mode', 'classic');
 
         // Auto-cleanup: Hapus game basi yang sudah lebih dari 30 menit
         MatchmakingGame::where('created_at', '<', now()->subMinutes(30))->delete();
@@ -40,9 +41,10 @@ class MatchController extends Controller
         // 2. Cleanup: Hapus waiting records yang sudah offline (older dari 3 menit)
         MatchmakingWaiting::where('updated_at', '<', $offlineThreshold)->delete();
 
-        // 3. Cari opponent yang masih active (updated_at dalam 3 menit terakhir)
+        // 3. Cari opponent yang masih active (updated_at dalam 3 menit terakhir) dan SAME MODE
         $waiting = MatchmakingWaiting::where('user_id', '!=', $user->id)
             ->where('updated_at', '>=', $offlineThreshold)
+            ->where('mode', $mode)
             ->first();
 
         if ($waiting) {
@@ -62,13 +64,15 @@ class MatchController extends Controller
                 'status' => 'matched',
                 'gameId' => $gameId,
                 'opponent' => $opponent?->name ?? 'Opponent',
+                'mode' => $mode,
             ]);
         }
 
-        // Tambahkan user ke waiting queue
+        // Tambahkan user ke waiting queue dengan mode
         MatchmakingWaiting::create([
             'user_id' => $user->id,
             'user_name' => $user->name,
+            'mode' => $mode,
         ]);
 
         return response()->json(['status' => 'waiting']);
@@ -77,6 +81,7 @@ class MatchController extends Controller
     public function status(Request $request)
     {
         $user = $request->user();
+        $mode = $request->input('mode', 'classic');
 
         // Auto-cleanup: Hapus game basi yang sudah lebih dari 30 menit
         MatchmakingGame::where('created_at', '<', now()->subMinutes(30))->delete();
@@ -102,15 +107,17 @@ class MatchController extends Controller
                 'status' => 'matched',
                 'gameId' => $game->game_id,
                 'opponent' => $opponent?->name ?? 'Opponent',
+                'mode' => $mode,
             ]);
         }
 
         // 2. Cleanup: Hapus waiting records yang sudah offline
         MatchmakingWaiting::where('updated_at', '<', $offlineThreshold)->delete();
 
-        // 3. Check di MatchmakingWaiting (hanya active records)
+        // 3. Check di MatchmakingWaiting (hanya active records dan SAME MODE)
         $waiting = MatchmakingWaiting::where('user_id', $user->id)
             ->where('updated_at', '>=', $offlineThreshold)
+            ->where('mode', $mode)
             ->first();
 
         if ($waiting) {
@@ -156,6 +163,7 @@ class MatchController extends Controller
     public function createRoom(Request $request)
     {
         $user = $request->user();
+        $mode = $request->input('mode', 'classic');
 
         $roomCode = strtoupper(Str::random(6));
         while (Room::where('room_code', $roomCode)->exists()) {
@@ -166,6 +174,7 @@ class MatchController extends Controller
             'room_code' => $roomCode,
             'host_id' => $user->id,
             'status' => 'waiting',
+            'mode' => $mode,
         ]);
 
         return response()->json(['status' => 'created', 'room_code' => $room->room_code]);
@@ -201,7 +210,12 @@ class MatchController extends Controller
             'created_at' => now(),
         ]);
 
-        return response()->json(['status' => 'matched', 'gameId' => $room->game_id, 'opponent' => $room->host?->name ?? 'Opponent']);
+        return response()->json([
+            'status' => 'matched',
+            'gameId' => $room->game_id,
+            'opponent' => $room->host?->name ?? 'Opponent',
+            'mode' => $room->mode,
+        ]);
     }
 
     public function roomStatus(Request $request)
@@ -246,6 +260,35 @@ class MatchController extends Controller
         }
 
         return view('jarimatika.waiting-room', [
+            'user' => $user,
+            'room' => $room,
+            'roomCode' => strtoupper($code),
+            'isHost' => $room->host_id === $user->id,
+        ]);
+    }
+
+    // Battle Hitung Matchmaking Methods
+    public function showHitung(Request $request)
+    {
+        return view('jarimatika.match-hitung', [
+            'user' => $request->user(),
+        ]);
+    }
+
+    public function showWaitingRoomHitung(Request $request, $code)
+    {
+        $user = $request->user();
+        $room = Room::where('room_code', strtoupper($code))->first();
+
+        if (! $room) {
+            return redirect()->route('jarimatika.match.hitung')->with('error', 'Room tidak ditemukan');
+        }
+
+        if ($room->host_id !== $user->id && $room->guest_id !== $user->id) {
+            return redirect()->route('jarimatika.match.hitung')->with('error', 'Anda tidak memiliki akses ke room ini');
+        }
+
+        return view('jarimatika.waiting-room-hitung', [
             'user' => $user,
             'room' => $room,
             'roomCode' => strtoupper($code),

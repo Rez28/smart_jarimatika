@@ -1,4 +1,5 @@
 <x-app-layout>
+    @include('components.navbar')
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Fredoka:wght@400;500;600;700;900&display=swap');
 
@@ -75,13 +76,30 @@
                     <div class="absolute -right-10 -top-10 w-48 h-48 bg-[#E0F2FE] rounded-full z-0 opacity-50"></div>
 
                     <div class="relative z-10 flex flex-col md:flex-row items-center gap-6 text-center md:text-left">
-                        <div
-                            class="w-24 h-24 rounded-full bg-[#BBCB64] border-4 border-white shadow-lg flex items-center justify-center text-4xl font-black text-white shrink-0">
-                            {{ strtoupper(substr(auth()->user()->name, 0, 1)) }}
+                        <div class="shrink-0">
+                            @php
+                                $avatar = auth()->user()->active_avatar;
+                                $isEmoji = $avatar && strlen($avatar) < 10 && !str_contains($avatar, '/');
+                            @endphp
+                            @if ($avatar && !$isEmoji)
+                                <img src="{{ asset($avatar) }}"
+                                    class="rounded-full w-24 h-24 border-4 border-white shadow-lg object-cover mb-4">
+                            @elseif ($avatar && $isEmoji)
+                                <div
+                                    class="w-24 h-24 rounded-full bg-white border-4 border-[#38BDF8] shadow-lg flex items-center justify-center text-6xl mb-4">
+                                    {{ $avatar }}
+                                </div>
+                            @else
+                                <div
+                                    class="w-24 h-24 rounded-full bg-[#BBCB64] border-4 border-white shadow-lg flex items-center justify-center text-4xl font-black text-white mb-4">
+                                    {{ strtoupper(substr(auth()->user()->name, 0, 1)) }}
+                                </div>
+                            @endif
                         </div>
 
                         <div class="flex-grow w-full">
-                            <p class="text-slate-400 font-bold uppercase tracking-widest text-sm">Selamat Datang Kembali,
+                            <p class="text-slate-400 font-bold uppercase tracking-widest text-sm">Selamat Datang
+                                Kembali,
                             </p>
                             <h1 class="text-3xl md:text-4xl font-black text-slate-800 mb-4">{{ auth()->user()->name }}!
                                 👋</h1>
@@ -151,6 +169,17 @@
                                 <h3 class="text-xl font-black text-white drop-shadow-sm">Battle</h3>
                                 <p class="text-orange-100 font-medium text-xs mt-1 px-2">1 vs 1 Matchmaking</p>
                             </a>
+
+                            <a href="{{ route('jarimatika.match.hitung') }}"
+                                class="mode-btn group relative overflow-hidden hover:shadow-lg transition-all bg-gradient-to-br from-purple-500 to-purple-600">
+                                <div
+                                    class="absolute top-2 right-[-20px] bg-purple-700 text-white text-xs font-black uppercase tracking-wider py-1 px-8 rotate-45 shadow-md">
+                                    NEW!</div>
+
+                                <div class="text-5xl mb-4 group-hover:scale-110 transition-transform">🧮</div>
+                                <h3 class="text-xl font-black text-white drop-shadow-sm">Battle Hitung</h3>
+                                <p class="text-purple-100 font-medium text-xs mt-1 px-2">Math Mode 1 vs 1</p>
+                            </a>
                         @else
                             <button disabled
                                 class="mode-btn bg-gray-400 cursor-not-allowed opacity-60 relative overflow-hidden transform hover:scale-100">
@@ -160,6 +189,18 @@
                                 <div class="flex flex-col items-center justify-center h-full">
                                     <div class="text-3xl mb-2">⚔️</div>
                                     <h3 class="text-sm font-black text-white drop-shadow-sm">Battle</h3>
+                                    <p class="text-gray-100 font-bold text-xs mt-1 px-1">Terbuka Level 5</p>
+                                </div>
+                            </button>
+
+                            <button disabled
+                                class="mode-btn bg-gray-400 cursor-not-allowed opacity-60 relative overflow-hidden transform hover:scale-100">
+                                <div class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 text-3xl">🔒
+                                </div>
+
+                                <div class="flex flex-col items-center justify-center h-full">
+                                    <div class="text-3xl mb-2">🧮</div>
+                                    <h3 class="text-sm font-black text-white drop-shadow-sm">Battle Hitung</h3>
                                     <p class="text-gray-100 font-bold text-xs mt-1 px-1">Terbuka Level 5</p>
                                 </div>
                             </button>
@@ -219,7 +260,7 @@
                 </div>
 
                 <div class="space-y-4">
-                    <a href="{{ route('leaderboard') }}"
+                    <a href="{{ route('reward.leaderboard') }}"
                         class="btn-3d-yellow w-full block text-center py-4 rounded-2xl text-slate-800 font-bold text-lg flex justify-center items-center gap-2">
                         <span>🏆</span> Papan Peringkat
                     </a>

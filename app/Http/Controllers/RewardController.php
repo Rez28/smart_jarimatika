@@ -24,6 +24,7 @@ class RewardController extends Controller
             'opponentScore' => 'required|integer|min:0',
         ]);
 
+        /** @var User $user */
         $user = Auth::user();
         if (!$user) {
             return response()->json([
@@ -74,8 +75,8 @@ class RewardController extends Controller
 
         return response()->json([
             'success' => true,
-            'message' => $messageType === 'victory' 
-                ? 'Selamat! Kamu menang dan mendapat reward!' 
+            'message' => $messageType === 'victory'
+                ? 'Selamat! Kamu menang dan mendapat reward!'
                 : 'Jangan menyerah! Coba lagi untuk mendapat reward lebih besar.',
             'rewards' => [
                 'koin' => $koinReward,
@@ -104,6 +105,7 @@ class RewardController extends Controller
             'levelDiambil' => 'required|integer|min:1|max:10',
         ]);
 
+        /** @var User $user */
         $user = Auth::user();
         if (!$user) {
             return response()->json([
@@ -169,5 +171,100 @@ class RewardController extends Controller
                 'bonus_piala' => $bonusPiala,
             ]);
         }
+    }
+
+    /**
+     * Tampilkan Leaderboard Kategori Trophy (Default)
+     */
+    public function leaderboard()
+    {
+        $users = User::select('id', 'name', 'piala', 'total_xp', 'level', 'active_avatar')
+            ->orderByDesc('piala')
+            ->orderByDesc('total_xp')
+            ->get()
+            ->map(function ($user, $index) {
+                $user->rank = $index + 1;
+                return $user;
+            });
+
+        $currentUser = Auth::user();
+
+        // Find current user rank
+        $currentUserRank = $users->where('id', $currentUser->id)->first();
+        if ($currentUserRank) {
+            $currentUser->rank = $currentUserRank->rank;
+        }
+
+        return view('leaderboard', [
+            'users' => $users,
+            'currentUser' => $currentUser,
+            'category' => 'trophy'
+        ]);
+    }
+
+    /**
+     * Tampilkan Leaderboard Berdasarkan Kategori
+     * 
+     * @param string $type (trophy, level, winrate)
+     */
+    public function leaderboardByType($type = 'trophy')
+    {
+        $validTypes = ['trophy', 'level', 'winrate'];
+        if (!in_array($type, $validTypes)) {
+            $type = 'trophy';
+        }
+
+        if ($type === 'trophy') {
+            // Kategori: Kolektor Piala
+            $users = User::select('id', 'name', 'piala', 'total_xp', 'level', 'active_avatar')
+                ->orderByDesc('piala')
+                ->orderByDesc('total_xp')
+                ->get()
+                ->map(function ($user, $index) {
+                    $user->rank = $index + 1;
+                    return $user;
+                });
+        } elseif ($type === 'level') {
+            // Kategori: Level Tertinggi (Total XP)
+            $users = User::select('id', 'name', 'piala', 'total_xp', 'level', 'active_avatar')
+                ->orderByDesc('level')
+                ->orderByDesc('total_xp')
+                ->get()
+                ->map(function ($user, $index) {
+                    $user->rank = $index + 1;
+                    return $user;
+                });
+        } elseif ($type === 'winrate') {
+            // Kategori: Rasio Kemenangan (Win Rate)
+            // Asumsikan kolom total_menang dan total_main akan ditambahkan nanti
+            $users = User::select('id', 'name', 'piala', 'total_xp', 'level', 'active_avatar', 'total_menang', 'total_main')
+                ->get()
+                ->map(function ($user, $index) {
+                    // Hitung win rate
+                    $total_main = $user->total_main ?? 0;
+                    $user->win_rate = $total_main > 0 ? round(($user->total_menang ?? 0) / $total_main * 100, 2) : 0;
+                    return $user;
+                })
+                ->sortByDesc('win_rate')
+                ->values()
+                ->map(function ($user, $index) {
+                    $user->rank = $index + 1;
+                    return $user;
+                });
+        }
+
+        $currentUser = Auth::user();
+
+        // Find current user rank
+        $currentUserRank = $users->where('id', $currentUser->id)->first();
+        if ($currentUserRank) {
+            $currentUser->rank = $currentUserRank->rank;
+        }
+
+        return view('leaderboard', [
+            'users' => $users,
+            'currentUser' => $currentUser,
+            'category' => $type
+        ]);
     }
 }
